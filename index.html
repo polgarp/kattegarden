@@ -116,13 +116,20 @@ const LOAF_FACE={
   happy:L('M36 32Q40 27.5 44 32M56 32Q60 27.5 64 32')+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
   sulk: `<path d="M37 30A3 3 0 0 0 43 30Z" fill="${C.ink}"/><path d="M57 30A3 3 0 0 0 63 30Z" fill="${C.ink}"/>`+L('M36 30H44M56 30H64M35 23L44 26.5M65 23L56 26.5')+L('M45 44Q50 40.5 55 44'),
   glare:L('M36 31.5H44M56 31.5H64',2.6)+L('M35 25L44 28M65 25L56 28')+L('M46 42.5H54'),
+  // idle faces: the print changes, the die-cut never does (lenticular sticker)
+  blink:L('M36.5 31Q40 33.5 43.5 31M56.5 31Q60 33.5 63.5 31')+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  wink: dot(40,31,2.6)+L('M56 32Q60 27.5 64 32')+L('M44 40.5Q47 45 50 41Q53 45 56 40.5'),
+  lookL:dot(37.2,31,2.6)+dot(57.2,31,2.6)+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  lookR:dot(42.8,31,2.6)+dot(62.8,31,2.6)+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  lookD:dot(40,33.6,2.6)+dot(60,33.6,2.6)+L('M45 41.5Q47.5 44 50 41.5Q52.5 44 55 41.5'),
 };
-function loafSVG(m='ask'){const f=C.orange;
+const loafSVG=(m='ask')=>loafBody()+LOAF_FACE[m];
+function loafBody(){const f=C.orange;
   return P('M80 70Q98 70 96 52Q95 44 89 46Q92 54 88 62Q84 66 78 64Z',f)+P('M8 74Q6 40 40 34L62 34Q94 38 92 74Z',f)
    +P('M30 22L32 4L46 14Z',f)+P('M54 14L68 4L70 22Z',f)+flat('M33 18L34 9L42 14Z',C.pink)+flat('M58 14L66 9L67 18Z',C.pink)
    +Ci(50,32,22,f)+L('M44 13L45 19M50 11V18M56 13L55 19')+blush(36,64,39)
    +nose('M48 37H52L50 40Z')+L('M30 38L19 36M30 41L19 43M70 38L81 36M70 41L81 43',1.4)
-   +E(40,74,7,4,f)+E(60,74,7,4,f)+LOAF_FACE[m];}
+   +E(40,74,7,4,f)+E(60,74,7,4,f);}
 function gassySVG(){const f=C.grey;
   return P('M58 84Q78 82 74 62Q72 54 66 58Q70 66 66 74Q62 78 56 78Z',f)+P('M18 86Q12 54 40 48Q68 54 62 86Z',f)
    +`<ellipse cx="40" cy="71" rx="10" ry="12" fill="${C.paper}"/>`
@@ -177,6 +184,7 @@ function nightSVG(){const f=C.ink,Y=C.yellow;
 function kittenSVG(f,m='ok',mat='pude'){
   const face=m==='cross'?L('M13 4.5L15.6 6.5L13 8.5M23 4.5L20.4 6.5L23 8.5',1.4)+L('M16 11.5Q18 10 20 11.5',1.3)
     :m==='zz'?L('M13 6Q14.5 7.8 16 6M20 6Q21.5 7.8 23 6',1.3)+L('M17 10.5Q18 11.3 19 10.5',1.1)
+    :m==='peek'?dot(14.5,6.5,1.5)+L('M20 6Q21.5 7.8 23 6',1.3)+L('M17 10.5Q18 11.3 19 10.5',1.1)
     :dot(14.5,6.5,1.5)+dot(21.5,6.5,1.5)+L('M16 10Q17 11.4 18 10Q19 11.4 20 10',1.2);
   const head=P('M10 6L10 -4L16 1Z',f)+P('M26 6L26 -4L20 1Z',f)+Ci(18,7,9,f)
    +flat('M11.5 3.5L11.5 -1L14.5 1.5Z',C.pink)+flat('M24.5 3.5L24.5 -1L21.5 1.5Z',C.pink)+face;
@@ -277,10 +285,12 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 
 // ---------- sticker elements ----------
-function mk(role,wU,hU,inner,{filter='stk',z=20,k=1,cls=''}={}){
+// `face` sits on its own layer above the filtered sticker, so swapping it never re-renders border or shading
+function mk(role,wU,hU,inner,{filter='stk',z=20,k=1,cls='',face=null}={}){
   const el=document.createElement('div'); el.className='stk '+cls; if(role) el.dataset.role=role;
   el.dataset.w=wU; el.dataset.h=hU; el.dataset.k=k; el.style.zIndex=z;
-  el.innerHTML=`<div class="body"><svg viewBox="0 0 ${wU} ${hU}"><g${filter?` filter="url(#${filter})"`:''}>${inner}</g></svg></div>`;
+  el.innerHTML=`<div class="body"><svg viewBox="0 0 ${wU} ${hU}"><g${filter?` filter="url(#${filter})"`:''}>${inner}</g>${face!==null?`<g>${face}</g>`:''}</svg></div>`;
+  if(face!==null)el._face=el.querySelector('svg>g:last-child');
   sizeEl(el); world.appendChild(el); return el;
 }
 function sizeEl(el){const b=el.firstElementChild,k=+el.dataset.k;b.style.width=el.dataset.w*U*k+'px';b.style.height=el.dataset.h*U*k+'px';}
@@ -313,7 +323,7 @@ let cat,bubble,srcs=[],bell,albumEl,handle,wChip,hChip,countChip;
 function chip(){const d=document.createElement('div');d.className='chip';d.style.zIndex=14;d.hidden=true;world.appendChild(d);return d;}
 function setBubble(t){const w=bubbleW(t);bubble.dataset.w=w;bubble.querySelector('svg').setAttribute('viewBox',`0 0 ${w} 52`);setInner(bubble,bubbleSVG(t));sizeEl(bubble);}
 function init(){
-  cat=mk('cat',100,80,loafSVG('ask'),{k:1.25,z:25});
+  cat=mk('cat',100,80,loafBody(),{k:1.25,z:25,face:LOAF_FACE.ask});
   bubble=mk('cat',80,52,'',{k:1.15,z:26});setBubble(req.label);
   srcs=MATS.map((m,i)=>{const el=mk('src',48,37,SRC[m](),{k:SK,z:22,cls:'src'+(!bed&&i===0?' hint':'')});el.dataset.m=m;return el;});
   bell=mk('bell',48,44,bellSVG(),{k:1.5,z:22,cls:'bell'});
@@ -400,8 +410,8 @@ world.addEventListener('pointerdown',e=>{
   if(TAPS.includes(role)){drag={role,el:t};}
   else if(busy)return;
   else if(role==='src'){drag={role,el:t,dx:p.x-t._x,dy:p.y-t._y};srcs.forEach(s=>s.classList.remove('hint'));lift(t,true);}
-  else if(role==='bed'&&bed){clearSleepers();drag={role,oi:Math.floor((p.x-gx)/c)-bed.i,oj:Math.floor((p.y-gy)/ch)-bed.j};body(frame).classList.add('lifted');}
-  else if(role==='handle'&&bed){clearSleepers();drag={role,t:0};handle.classList.remove('hint');}
+  else if(role==='bed'&&bed){clearSleepers();drag={role,oi:Math.floor((p.x-gx)/c)-bed.i,oj:Math.floor((p.y-gy)/ch)-bed.j};body(frame).classList.add('lifted');watch(true);}
+  else if(role==='handle'&&bed){clearSleepers();drag={role,t:0};handle.classList.remove('hint');watch(true);}
   if(drag)try{world.setPointerCapture(e.pointerId)}catch(_){}
 });
 world.addEventListener('pointermove',e=>{
@@ -419,7 +429,7 @@ world.addEventListener('pointermove',e=>{
 function endDrag(){
   if(!drag)return;const d=drag;drag=null;
   if(d.role==='bell')ring();
-  else if(d.role==='cat'){nudge(cat);pop(bubble);}
+  else if(d.role==='cat'){nudge(cat);pop(bubble);flash(Math.random()<.5?'wink':'happy',650);}
   else if(d.role==='album')openAlbum();
   else if(d.role==='visitor')dismissVisitor();
   else if(d.role==='gift')takeGift(d.el);
@@ -433,8 +443,8 @@ function endDrag(){
       else{bed.m=m;clearSleepers();}
       layoutBed(true);slap(frame);place(el,home.x,home.y);pop(el);save();
     }else slide(el,{x:el._x,y:el._y},home,260);
-  }else if(d.role==='bed'){body(frame).classList.remove('lifted');slap(frame);save();}
-  else if(d.role==='handle')save();
+  }else if(d.role==='bed'){body(frame).classList.remove('lifted');slap(frame);watch(false);save();}
+  else if(d.role==='handle'){watch(false);save();}
 }
 world.addEventListener('pointerup',endDrag);
 world.addEventListener('pointercancel',endDrag);
@@ -442,7 +452,7 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 
 // ---------- a new request from the cat ----------
 async function setupRequest(){
-  setBubble(req.label);pop(bubble);
+  setBubble(req.label);pop(bubble);flash('lookR',1100);
   if(req.t==='fixW'){
     bed={i:bed?clamp(bed.i,0,COLS-req.w):(COLS-req.w)>>1,j:bed?Math.min(bed.j,ROWS-2):2,w:req.w,h:1,m:mat};
     layoutBed(true);handle.classList.add('hint');
@@ -497,7 +507,7 @@ async function ring(){
   busy=false;save();
 }
 async function under(kits){
-  setInner(cat,loafSVG('sulk'));
+  setFace('sulk');
   const cloud=mk(null,62,48,cloudSVG(),{z:40});place(cloud,cat._x+catW*.22,cat._y-52*U);pop(cloud);
   for(const el of kits.filter(k=>k._spill)){
     setInner(el,kittenSVG(el._f,'cross'));
@@ -511,10 +521,10 @@ async function under(kits){
   await wait(2400);
   await Promise.all(kits.map((el,i)=>vanish(el,i*12)));
   await vanish(cloud);
-  setInner(cat,loafSVG('ask'));pop(bubble);
+  setFace('ask');pop(bubble);
 }
 async function over(kits,empty){
-  setInner(cat,loafSVG('glare'));
+  setFace('glare');
   empty=empty.sort(()=>Math.random()-.5).slice(0,4);
   const birds=empty.map((cell,i)=>{const el=mk(null,36,25,pigeonSVG(),{z:45});fly(el,{x:W+30,y:gy-80*U},cellXY(...cell),i*240,620,30);return el;});
   await wait(empty.length*240+800);
@@ -522,7 +532,7 @@ async function over(kits,empty){
   await wait(2200);
   await Promise.all(birds.map((el,i)=>slide(el,{x:el._x,y:el._y},{x:W+40,y:-40},500+i*80).then(()=>el.remove())));
   await Promise.all(kits.map((el,i)=>vanish(el,i*12)));
-  setInner(cat,loafSVG('ask'));pop(bubble);
+  setFace('ask');pop(bubble);
 }
 // a taste is tied to what SHE chose (shape, material), so the cause can be found again
 function tasteOf(b){
@@ -535,7 +545,7 @@ function tasteOf(b){
 }
 async function success(kits){
   succ++;
-  setInner(cat,loafSVG('happy'));
+  setFace('happy');
   const heart=mk(null,36,25,heartSVG(),{z:41});place(heart,cat._x+catW*.5-20*U,cat._y-28*U);pop(heart);
   kits.forEach((el,i)=>body(el).animate([{transform:'translateY(0)'},{transform:'translateY(-9px)'},{transform:'translateY(0)'}],{duration:300,delay:Math.min(i*30,900),easing:'ease-out'}));
   await wait(Math.min(kits.length*30,900)+500);
@@ -546,7 +556,7 @@ async function success(kits){
   if(v&&!album.has(v))await collect(v,extras[0]);
   await wait(1100);
   await Promise.all([...kits.map((el,i)=>vanish(el,i*8)),...extras.map(el=>vanish(el)),vanish(heart)]);
-  setInner(cat,loafSVG('ask'));
+  setFace('ask');
   req=gen(req);await setupRequest();
 }
 function spot(d){
@@ -663,10 +673,35 @@ function openAlbum(){
   v.addEventListener('click',()=>v.animate([{opacity:1},{opacity:0}],{duration:160}).finished.then(()=>v.remove()));
 }
 
+// ---------- idle life: blinks, glances, the odd wink ----------
+let faceNow='ask';
+const IDLE=['ask','blink','wink','lookL','lookR','lookD'];
+function setFace(m){faceNow=m;cat._face.innerHTML=LOAF_FACE[m];}
+// show an idle face, then return to neutral, unless a mood (happy/sulk/glare) took over meanwhile
+async function flash(m,ms){if(busy||!IDLE.includes(faceNow))return;setFace(m);await wait(ms);if(faceNow===m)setFace('ask');}
+function watch(on){if(busy)return;if(on)setFace('lookD');else if(faceNow==='lookD')setFace('ask');}
+async function idleLife(){
+  for(;;){
+    await wait(rnd(2000,5000));
+    if(busy||drag||document.hidden||faceNow!=='ask')continue;
+    const r=Math.random();
+    if(r<.5){await flash('blink',130);if(Math.random()<.3){await wait(170);await flash('blink',120);}}
+    else if(r<.72)await flash(Math.random()<.5?'lookL':'lookR',rnd(900,1600));
+    else if(r<.86)await flash('wink',480);
+    else await flash('happy',900);
+    // a sleeping kitten sometimes opens one eye
+    if(sleepers.length&&Math.random()<.35){
+      const el=pick(sleepers);setInner(el,kittenSVG(el._f,'peek',bed.m));
+      await wait(rnd(500,900));if(sleepers.includes(el))setInner(el,kittenSVG(el._f,'zz',bed.m));
+    }
+  }
+}
+
 // ---------- go ----------
 init();
 if(req.t!=='make'&&(!bed||(req.t==='fixW'&&bed.w!==req.w)||(req.t!=='fixW'&&!S.bed)))setupRequest();
 checkAway(q.has('away'));
+idleLife();
 addEventListener('resize',()=>{if(!busy)layout();});
 </script>
 </body>
