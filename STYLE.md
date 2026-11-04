@@ -15,11 +15,14 @@ Everything in the world is a **die-cut sticker on felt**. Each sticker has a 4.5
 - Small items are 1 cell. Furniture is 2–4 cells wide, or sized by the maths (a bed for 12 is 12 cells).
 - Cats: kitten 1 cell, ordinary cat about 3 cells wide, noodle cat 5–6.
 
+## Album
+A missing sticker shows as its own silhouette (plum at 15%, border included). The silhouette is the hint, so every cat needs a shape that gives away its cause.
+
 ## Light
 Always from the top left. Each shape gets its own shading: a shadow crescent at the bottom right (plum `#3b2340` at 24%) and a light rim at the top left (white at 40%). That is the `cel` filter.
 
 ## Lines
-Only for features: eyes, brows, mouths, stripes, whiskers. Plum `#3b2a4a`, 1.9u at scale 1, round caps.
+Only for features: eyes, brows, mouths, stripes, whiskers. Plum `#3b2a4a`, 1.9u at scale 1, round caps. On dark fur, features are yellow `#f6d26b`.
 
 ## Faces
 Eyes are dots, arcs or half-lidded. Expression comes from lids and brows. Pink blush circles. Small triangle nose.
@@ -39,6 +42,7 @@ Eyes are dots, arcs or half-lidded. Expression comes from lids and brows. Pink b
 | Wood / plank | `#b9774f` / `#e9d7b5` |
 | Grey-blue | `#b8c4d9` |
 | Cream | `#f3e1b8` |
+| Cardboard | `#d8a265` |
 
 A new colour gets a row here before it gets used.
 
