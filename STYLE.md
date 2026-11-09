@@ -5,6 +5,12 @@ Locked decisions. Change deliberately, and update this file in the same commit.
 ## Medium
 Everything in the world is a **die-cut sticker on felt**. Each sticker has a 4.5u white border (`#fffdf7`), a hairline die-cut edge (`#c9bfac`), a tight contact shadow and a soft ambient shadow. A sticker that is lifted (being dragged) drops its shadow far below it.
 
+## Terrain vs stickers
+- Things she can move are **stickers**: white border and a shadow, and they lift when dragged.
+- Things the world owns (tree, puddle, flowerbed, rock) are **felt appliqué** sewn into the yard: a stitched paper-coloured dashed edge, a tiny drop shadow, and no white border. No border means you can't pick it up.
+- **Mown checkerboard** grass marks where she can build: one square is one cell. **Long, rough tufts** mark where she can't. There are no grid lines.
+- **Sunlight** is a soft beam through a gap in the fence, landing as a warm patch with a dotted edge. It moves with the time of day.
+
 ## Shape grammar
 - Build only from circles and ellipses, rounded rectangles and soft triangles (ears). Tails are the one freeform curve.
 - Rounded rectangle corner radius is about ⅓ of the short side.
