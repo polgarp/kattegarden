@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kattegården">
+<meta name="theme-color" content="#2c6e72">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Kattegården</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&display=swap">
+<style>
+:root{--felt:#2c6e72;--paper:#fffdf7;--sheet:#f6f1e6;--ink:#3b2a4a;--edge:#c9bfac;--wood:#b9774f;--u:1}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--felt);overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;
+  font-family:"Baloo 2",ui-rounded,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+#world{position:relative;width:100%;height:100%;overflow:hidden}
+#bg{position:absolute;inset:0;width:100%;height:100%}
+[hidden]{display:none!important}
+.stk{position:absolute;left:0;top:0}
+.stk .body{transform-origin:50% 80%;transition:transform .15s ease-out}
+.stk svg{display:block;width:100%;height:100%;overflow:visible}
+.stk .body.lifted{transform:scale(1.1) rotate(-5deg)}
+.handle .body{width:44px;height:44px;transform-origin:50% 50%}
+.handle.hint .body{animation:tug 1.4s ease-in-out infinite}
+.handle.hint.v .body{animation:tugv 1.4s ease-in-out infinite}
+@keyframes tug{0%,60%,100%{transform:translate(0,0)}75%{transform:translate(5px,5px)}88%{transform:translate(1px,1px)}}
+@keyframes tugv{0%,60%,100%{transform:translate(0,0)}75%{transform:translate(0,7px)}88%{transform:translate(0,1px)}}
+.src.hint .body{animation:bob 1.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-3deg)}}
+.chip{position:absolute;left:0;top:0;pointer-events:none;width:1.9em;height:1.5em;line-height:1.6em;text-align:center;
+  font-size:calc(var(--u) * 15px);font-weight:700;color:var(--ink);background:var(--paper);border-radius:.5em;
+  box-shadow:0 0 0 1px var(--edge),0 2px 0 rgba(11,42,36,.4),0 5px 10px rgba(11,42,36,.18)}
+.chip.locked{background:var(--wood);color:var(--paper);box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--edge),0 3px 0 3px rgba(11,42,36,.35)}
+.count{left:auto;top:auto;right:-.45em;bottom:-.35em;width:auto;min-width:1.35em;height:1.35em;line-height:1.45em;padding:0 .28em;box-sizing:border-box;
+  font-size:calc(var(--u) * 11px);border-radius:.7em;box-shadow:0 0 0 1px var(--edge),0 1.5px 0 rgba(11,42,36,.35)}
+#albumView{position:absolute;inset:0;z-index:100;background:rgba(11,42,36,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#albumView .sheet{background:var(--sheet);border-radius:18px;padding:16px 14px 18px;width:100%;max-width:420px;max-height:88%;overflow:auto;box-sizing:border-box;
+  box-shadow:0 0 0 1px var(--edge),0 4px 0 rgba(11,42,36,.35),0 18px 40px rgba(11,42,36,.35);display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
+#albumView svg{display:block;width:100%;height:82px;overflow:visible}
+.ghost{position:absolute;left:0;top:0;z-index:12;pointer-events:none;border:2px dashed var(--paper);border-radius:10px;background:rgba(255,253,247,.16);box-sizing:border-box}
+#intro{position:absolute;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:rgba(20,70,72,.72)}
+#intro h1{margin:0;font-size:44px;font-weight:700;color:var(--paper);letter-spacing:.5px;text-shadow:0 3px 0 rgba(11,42,36,.45)}
+#start{font:inherit;font-size:30px;font-weight:700;color:var(--ink);background:#f6d26b;border:0;border-radius:18px;padding:10px 38px 6px;cursor:pointer;
+  box-shadow:0 0 0 5px var(--paper),0 0 0 6px var(--edge),0 7px 0 3px rgba(11,42,36,.35),0 16px 26px rgba(11,42,36,.3)}
+#start:active{transform:translateY(3px)}
+#albumView .gifts{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-top:2px dashed var(--edge);padding-top:14px}
+#albumView .gifts svg{height:46px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="felt" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+    <filter id="stk" x="-30%" y="-30%" width="160%" height="170%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="4.5" result="d"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="5.4" result="d2"/>
+      <feFlood flood-color="#c9bfac"/><feComposite in2="d2" operator="in" result="edge"/>
+      <feFlood flood-color="#fffdf7"/><feComposite in2="d" operator="in" result="w"/>
+      <feGaussianBlur in="d2" stdDeviation="0.9" result="b1"/><feOffset in="b1" dy="1.6" result="s1"/><feFlood flood-color="#0b2a24" flood-opacity=".5"/><feComposite in2="s1" operator="in" result="sh1"/>
+      <feGaussianBlur in="d2" stdDeviation="4" result="b2"/><feOffset in="b2" dy="5" result="s2"/><feFlood flood-color="#0b2a24" flood-opacity=".2"/><feComposite in2="s2" operator="in" result="sh2"/>
+      <feMerge><feMergeNode in="sh2"/><feMergeNode in="sh1"/><feMergeNode in="edge"/><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="lifted" x="-40%" y="-40%" width="180%" height="200%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="4.5" result="d"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="5.4" result="d2"/>
+      <feFlood flood-color="#c9bfac"/><feComposite in2="d2" operator="in" result="edge"/>
+      <feFlood flood-color="#fffdf7"/><feComposite in2="d" operator="in" result="w"/>
+      <feGaussianBlur in="d2" stdDeviation="5" result="b2"/><feOffset in="b2" dx="4" dy="14" result="s2"/><feFlood flood-color="#0b2a24" flood-opacity=".3"/><feComposite in2="s2" operator="in" result="sh2"/>
+      <feMerge><feMergeNode in="sh2"/><feMergeNode in="edge"/><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- empty sticker slot: the shape's own silhouette, border included -->
+    <filter id="sil" x="-30%" y="-30%" width="160%" height="170%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="4.5" result="d"/>
+      <feFlood flood-color="#3b2340" flood-opacity=".15"/><feComposite in2="d" operator="in"/>
+    </filter>
+    <filter id="ap" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="1.2" stdDeviation=".8" flood-color="#0b2a24" flood-opacity=".3"/></filter>
+    <filter id="flapShadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="-1.5" dy="2" stdDeviation="1.6" flood-color="#0b2a24" flood-opacity=".35"/></filter>
+    <filter id="cel" x="-10%" y="-10%" width="120%" height="120%">
+      <feOffset in="SourceAlpha" dx="-3" dy="-3.5" result="o"/>
+      <feComposite in="SourceAlpha" in2="o" operator="out" result="rim"/>
+      <feGaussianBlur in="rim" stdDeviation=".5" result="rimb"/>
+      <feFlood flood-color="#3b2340" flood-opacity=".24"/><feComposite in2="rimb" operator="in" result="sh"/>
+      <feOffset in="SourceAlpha" dx="1.8" dy="2" result="o2"/>
+      <feComposite in="SourceAlpha" in2="o2" operator="out" result="hl"/>
+      <feFlood flood-color="#ffffff" flood-opacity=".4"/><feComposite in2="hl" operator="in" result="hlc"/>
+      <feMerge result="m"><feMergeNode in="SourceGraphic"/><feMergeNode in="sh"/><feMergeNode in="hlc"/></feMerge>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <linearGradient id="flapG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cfc4ad"/><stop offset=".6" stop-color="#fbf8f1"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+  </defs>
+</svg>
+
+<div id="game"><div id="world"><svg id="bg" aria-hidden="true"></svg>
+  <div id="intro"><h1>Kattegården</h1><button id="start" type="button">Start</button></div>
+</div></div>
+
+<script>
+// ---------- palette (STYLE.md) ----------
+const C={ink:'#3b2a4a',pink:'#ef8fa8',paper:'#fffdf7',sheet:'#f6f1e6',orange:'#f4a259',grey:'#b8c4d9',cream:'#f3e1b8',
+  yellow:'#f6d26b',sky:'#7fb7e6',mint:'#c4e98f',wood:'#b9774f',plank:'#e9d7b5',felt:'#2c6e72',grass:'#3c8c5c',edge:'#c9bfac',card:'#d8a265'};
+const KIT=[C.orange,C.grey,C.cream,C.yellow];
+const MATS=['pude','kasse','kar'];   // cushions, cardboard box, bathtub
+
+// ---------- shape grammar helpers ----------
+const P=(d,f)=>`<path d="${d}" fill="${f}" filter="url(#cel)"/>`;
+const Ci=(x,y,r,f)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" filter="url(#cel)"/>`;
+const E=(x,y,rx,ry,f)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" filter="url(#cel)"/>`;
+const R=(x,y,w,h,r,f)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${f}" filter="url(#cel)"/>`;
+const flat=(d,f)=>`<path d="${d}" fill="${f}"/>`;
+const L=(d,w=1.9,s=C.ink)=>`<path d="${d}" fill="none" stroke="${s}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+const dot=(x,y,r,f=C.ink)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`;
+const nose=d=>`<path d="${d}" fill="${C.pink}" stroke="${C.ink}" stroke-width="1" stroke-linejoin="round"/>`;
+const blush=(x1,x2,y,r=3.2)=>`<circle cx="${x1}" cy="${y}" r="${r}" fill="${C.pink}" opacity=".7"/><circle cx="${x2}" cy="${y}" r="${r}" fill="${C.pink}" opacity=".7"/>`;
+const num=(x,y,s,t,f=C.ink)=>`<text x="${x}" y="${y}" font-family="'Baloo 2',sans-serif" font-weight="700" font-size="${s}" fill="${f}">${t}</text>`;
+
+// ---------- characters ----------
+const LOAF_FACE={
+  ask:  dot(40,31,2.6)+dot(60,31,2.6)+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  happy:L('M36 32Q40 27.5 44 32M56 32Q60 27.5 64 32')+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  sulk: `<path d="M37 30A3 3 0 0 0 43 30Z" fill="${C.ink}"/><path d="M57 30A3 3 0 0 0 63 30Z" fill="${C.ink}"/>`+L('M36 30H44M56 30H64M35 23L44 26.5M65 23L56 26.5')+L('M45 44Q50 40.5 55 44'),
+  glare:L('M36 31.5H44M56 31.5H64',2.6)+L('M35 25L44 28M65 25L56 28')+L('M46 42.5H54'),
+  // idle faces: the print changes, the die-cut never does (lenticular sticker)
+  blink:L('M36.5 31Q40 33.5 43.5 31M56.5 31Q60 33.5 63.5 31')+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  wink: dot(40,31,2.6)+L('M56 32Q60 27.5 64 32')+L('M44 40.5Q47 45 50 41Q53 45 56 40.5'),
+  lookL:dot(37.2,31,2.6)+dot(57.2,31,2.6)+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  lookR:dot(42.8,31,2.6)+dot(62.8,31,2.6)+L('M45 41Q47.5 44 50 41Q52.5 44 55 41'),
+  lookD:dot(40,33.6,2.6)+dot(60,33.6,2.6)+L('M45 41.5Q47.5 44 50 41.5Q52.5 44 55 41.5'),
+};
+const loafSVG=(m='ask')=>loafBody()+LOAF_FACE[m];
+function loafBody(){const f=C.orange;
+  return P('M80 70Q98 70 96 52Q95 44 89 46Q92 54 88 62Q84 66 78 64Z',f)+P('M8 74Q6 40 40 34L62 34Q94 38 92 74Z',f)
+   +P('M30 22L32 4L46 14Z',f)+P('M54 14L68 4L70 22Z',f)+flat('M33 18L34 9L42 14Z',C.pink)+flat('M58 14L66 9L67 18Z',C.pink)
+   +Ci(50,32,22,f)+L('M44 13L45 19M50 11V18M56 13L55 19')+blush(36,64,39)
+   +nose('M48 37H52L50 40Z')+L('M30 38L19 36M30 41L19 43M70 38L81 36M70 41L81 43',1.4)
+   +E(40,74,7,4,f)+E(60,74,7,4,f);}
+function gassySVG(){const f=C.grey;
+  return P('M58 84Q78 82 74 62Q72 54 66 58Q70 66 66 74Q62 78 56 78Z',f)+P('M18 86Q12 54 40 48Q68 54 62 86Z',f)
+   +`<ellipse cx="40" cy="71" rx="10" ry="12" fill="${C.paper}"/>`
+   +P('M22 24L22 6L36 16Z',f)+P('M44 16L58 6L58 24Z',f)+flat('M25 20L25 11L32 16Z',C.pink)+flat('M48 16L55 11L55 20Z',C.pink)
+   +Ci(40,32,20,f)+`<path d="M30 31A3.5 3.5 0 0 0 37 31Z" fill="${C.ink}"/><path d="M43 31A3.5 3.5 0 0 0 50 31Z" fill="${C.ink}"/>`
+   +L('M29 31H37M43 31H51M42 24Q47 21 52 24')+nose('M38 37H42L40 40Z')+L('M37 42Q41 44 45 40.5')
+   +L('M22 37L12 35M22 40L12 42M58 37L68 35M58 40L68 42',1.4)+E(32,86,6,3.5,f)+E(48,86,6,3.5,f);}
+function noodleSVG(){const f=C.cream;
+  return P('M142 34Q158 30 154 12Q152 6 147 9Q150 18 146 24Q142 28 138 28Z',f)
+   +E(42,48,6,3.5,f)+E(62,48,6,3.5,f)+E(112,48,6,3.5,f)+E(132,48,6,3.5,f)
+   +R(18,22,128,26,13,f)+L('M60 23L62 31M80 23L82 31M100 23L102 31M120 23L122 31')
+   +P('M8 14L10 0L20 9Z',f)+P('M26 9L36 0L38 14Z',f)+flat('M11 11L12 4L17 9Z',C.pink)+flat('M29 9L34 4L35 11Z',C.pink)
+   +Ci(23,22,16,f)+L('M14 21Q17 18 20 21M26 21Q29 18 32 21')+nose('M21.5 26H24.5L23 28.5Z')
+   +L('M20 30Q21.5 32 23 30Q24.5 32 26 30',1.4)+L('M11 26L2 25M11 29L2 31M35 26L44 25',1.2);}
+// square bed → a cat that is, frankly, a cube
+function cubeSVG(){const f=C.yellow;
+  return P('M66 72Q84 70 81 52Q80 46 75 48Q78 56 74 63Q70 67 64 66Z',f)
+   +P('M14 22L16 2L32 14Z',f)+P('M52 14L68 2L70 22Z',f)+flat('M17.5 17L18.5 8L27 14Z',C.pink)+flat('M57 14L65.5 8L66.5 17Z',C.pink)
+   +R(8,12,64,62,20,f)+L('M34 18L35 24M40 16V23M46 18L45 24')
+   +dot(30,40,2.8)+dot(50,40,2.8)+blush(24,56,48,3.4)
+   +nose('M38 45H42L40 48Z')+L('M35 50Q37.5 53 40 50Q42.5 53 45 50')
+   +L('M19 46L9 44M19 49L9 51M61 46L71 44M61 49L71 51',1.4)+E(26,74,7,4,f)+E(54,74,7,4,f);}
+// cardboard box → a calico who arrives in her own box
+function boxcatSVG(){const f=C.cream;
+  return P('M30 22L32 4L46 14Z',f)+P('M50 14L64 4L66 22Z',f)+flat('M33.5 17L34.5 9L42 14Z',C.pink)+flat('M54 14L61.5 9L62.5 17Z',C.pink)
+   +Ci(48,32,20,f)+flat('M32 28Q34 17 45 13Q40 20 41 28Q36 31 32 28Z',C.orange)
+   +dot(40,31,3.3)+dot(56,31,3.3)+dot(41.2,29.8,1.1,'#fff')+dot(57.2,29.8,1.1,'#fff')
+   +nose('M46 37H50L48 40Z')+L('M44 42Q46 44 48 42Q50 44 52 42',1.4)
+   +L('M30 37L19 35M30 40L19 42M66 37L77 35M66 40L77 42',1.4)
+   +P('M16 50L4 36Q3 33 6 33L34 38L36 50Z',C.plank)+P('M80 50L92 36Q93 33 90 33L62 38L60 50Z',C.plank)
+   +R(14,46,68,34,9,C.card)+`<rect x="41" y="46" width="14" height="13" fill="${C.cream}" opacity=".8"/>`
+   +E(36,48,7,4.5,f)+E(60,48,7,4.5,f);}
+// bathtub → shower cap, rubber duck, total bliss
+function tubcatSVG(){const f=C.pink;
+  return P('M38 26L38 8L50 18Z',f)+P('M62 18L74 8L74 26Z',f)+Ci(56,38,19,f)
+   +E(56,24,23,11,C.mint)+dot(44,21,2,C.paper)+dot(56,17,2,C.paper)+dot(68,21,2,C.paper)+dot(50,28,1.6,C.paper)+dot(63,28,1.6,C.paper)
+   +L('M45 39Q48.5 35.5 52 39M60 39Q63.5 35.5 67 39')+blush(44,68,44.5,3)
+   +nose('M54 43H58L56 46Z')+L('M52.5 48Q56 51 59.5 48',1.4)
+   +Ci(18,80,5,C.yellow)+Ci(94,80,5,C.yellow)+R(6,50,100,30,15,C.sky)
+   +E(44,51,6.5,4,f)+E(68,51,6.5,4,f)
+   +Ci(14,50,6,C.paper)+Ci(24,47,7,C.paper)+Ci(33,50,5,C.paper)+Ci(86,48,7,C.paper)+Ci(97,51,5,C.paper)
+   +E(84,40,8,5.5,C.yellow)+Ci(91,32,5,C.yellow)+flat('M95 31L100 33L95 35Z',C.orange)+dot(92,30.5,1.1);}
+// only comes while the app is closed
+function nightSVG(){const f=C.ink,Y=C.yellow;
+  return P('M82 72Q100 72 98 54Q97 46 91 48Q94 56 90 64Q86 68 80 66Z',f)+P('M8 76Q6 42 40 36L62 36Q94 40 92 76Z',f)
+   +P('M30 24L32 6L46 16Z',f)+Ci(50,36,22,f)
+   +P('M34 22Q40 4 62 6Q82 8 92 30Q80 18 68 20Q50 16 34 22Z',C.sky)+Ci(92,31,5.5,Y)
+   +L('M38 37Q41.5 40.5 45 37M55 37Q58.5 40.5 62 37',1.9,Y)
+   +nose('M48 42H52L50 45Z')+L('M30 42L19 40M30 45L19 47M70 42L81 40M70 45L81 47',1.3,Y)
+   +E(40,76,7,4,f)+E(60,76,7,4,f);}
+
+function kittenSVG(f,m='ok',mat='pude'){
+  const face=m==='cross'?L('M13 4.5L15.6 6.5L13 8.5M23 4.5L20.4 6.5L23 8.5',1.4)+L('M16 11.5Q18 10 20 11.5',1.3)
+    :m==='zz'?L('M13 6Q14.5 7.8 16 6M20 6Q21.5 7.8 23 6',1.3)+L('M17 10.5Q18 11.3 19 10.5',1.1)
+    :m==='peek'?dot(14.5,6.5,1.5)+L('M20 6Q21.5 7.8 23 6',1.3)+L('M17 10.5Q18 11.3 19 10.5',1.1)
+    :dot(14.5,6.5,1.5)+dot(21.5,6.5,1.5)+L('M16 10Q17 11.4 18 10Q19 11.4 20 10',1.2);
+  const head=P('M10 6L10 -4L16 1Z',f)+P('M26 6L26 -4L20 1Z',f)+Ci(18,7,9,f)
+   +flat('M11.5 3.5L11.5 -1L14.5 1.5Z',C.pink)+flat('M24.5 3.5L24.5 -1L21.5 1.5Z',C.pink)+face;
+  if(mat==='kasse')return `<g transform="translate(0 4)">${head}</g>`+E(11.5,20.5,4.5,3,f)+E(24.5,20.5,4.5,3,f);
+  if(mat==='kar')return `<g transform="translate(0 4)">${head}</g>`+Ci(9,20,5.5,C.paper)+Ci(18,22,6.5,C.paper)+Ci(27,20,5.5,C.paper);
+  return P('M26 21Q34 21 32 13Q31 11 29.5 12Q31 16 29 18.5Q27 19.5 25 19Z',f)+E(18,19,10,6.5,f)+head;
+}
+const pigeonSVG=()=>E(17,16,12,8,C.grey)+E(14,15,7,4.5,C.cream)+Ci(26,5,6,C.grey)+flat('M31 3.8L35.5 5.6L31 7.4Z',C.yellow)
+   +dot(27,4.2,1.2)+L('M24.5 2.6H29',1.4)+L('M15 23.5V27M21 23.5V27',1.6);
+const butterflySVG=()=>E(9,8,8,7,C.pink)+E(23,8,8,7,C.pink)+E(10,17,6,5,C.yellow)+E(22,17,6,5,C.yellow)
+   +R(14.5,4,3,17,1.5,C.ink)+L('M15 4Q12 -1 10 -1M17 4Q20 -1 22 -1',1.2);
+const duckSVG=()=>E(15,21,12,8,C.yellow)+Ci(24,10,6.5,C.yellow)+flat('M29 9L35 11L29 13Z',C.orange)+dot(25,8.5,1.2)+flat('M8 19Q14 15 19 20Q14 24 8 19Z','#e8bf55');
+const zzSVG=()=>num(0,24,17,'z')+num(12,15,23,'Z');
+const heartSVG=()=>P('M18 24C6 16 4 7 10 3.5C14 1.5 17 4 18 6.5C19 4 22 1.5 26 3.5C32 7 30 16 18 24Z',C.pink);
+const cloudSVG=()=>Ci(18,22,10,C.grey)+Ci(31,16,13,C.grey)+Ci(44,22,10,C.grey)+R(9,20,44,12,6,C.grey)
+   +Ci(20,40,2.4,C.sky)+Ci(32,45,2.4,C.sky)+Ci(44,40,2.4,C.sky);
+const puffSVG=()=>Ci(26,28,11,C.mint)+Ci(13,16,8,C.mint)+Ci(30,12,7,C.mint);
+// gifts left behind by night visitors
+const sockSVG=()=>P('M10 2H28V24Q28 28 32 28H38Q46 28 46 36Q46 44 38 44H18Q10 44 10 36Z',C.sky)+flat('M10 7H28V11H10ZM10 15H28V19H10Z',C.paper);
+const mouseSVG=()=>L('M42 25Q50 24 48 14Q47 8 51 5',1.6,C.pink)+P('M3 25Q8 12 24 12Q43 12 43 25Q43 33 25 33H10Q3 33 3 25Z',C.grey)
+   +Ci(22,11,5.5,C.grey)+dot(22,11,2.8,C.pink)+dot(12,21,1.5)+dot(3.5,25,2,C.pink);
+const featherSVG=()=>P('M8 44Q4 22 22 8Q36 0 40 6Q42 22 22 36Q14 42 8 44Z',C.pink)+L('M9 43Q20 26 36 8',1.4);
+const jarSVG=()=>R(5,12,30,34,9,C.sky)+Ci(15,33,6.5,C.mint)+Ci(25,26,7,C.mint)+Ci(23,38,5,C.mint)+R(8,5,24,9,4,C.wood)+flat('M10 18H14V30H10Z','rgba(255,255,255,.55)');
+const bubbleW=t=>Math.round(48+String(t).length*16);
+const bubbleSVG=t=>{const w=bubbleW(t);
+  return flat(`M14 2H${w-12}Q${w-2} 2 ${w-2} 12V34Q${w-2} 44 ${w-12} 44H24L6 52L13 42Q2 40 2 32V12Q2 2 14 2Z`,C.paper)
+   +flat('M15 18L15 8L21 13ZM31 18L31 8L25 13Z',C.orange)+Ci(23,23,9,C.orange)+dot(19.5,22,1.4)+dot(26.5,22,1.4)+num(39,34,27,t);};
+const bellSVG=()=>Ci(24,6,3.5,C.yellow)+P('M24 6C14 6 11 14 11 24L8 34H40L37 24C37 14 34 6 24 6Z',C.yellow)+Ci(24,37,4.5,C.wood);
+const albumSVG=()=>R(4,2,36,34,6,C.sky)+R(4,2,8,34,4,C.wood)+Ci(27,21,5,C.paper)+Ci(21,13,2.4,C.paper)+Ci(27,11,2.4,C.paper)+Ci(33,13,2.4,C.paper);
+
+// bed materials: tray sticker, frame, one cell
+const SRC={
+  pude:()=>R(0,0,48,37,10,C.wood)+R(7,7.5,34,22,7,C.pink)+`<path d="M13 13.5h10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>`,
+  kasse:()=>P('M7 14L0 3Q0 1 2 1L20 4L22 14Z',C.plank)+P('M41 14L48 3Q48 1 46 1L28 4L26 14Z',C.plank)+R(2,11,44,26,8,C.card)+`<rect x="20" y="11" width="8" height="10" fill="${C.cream}" opacity=".85"/>`,
+  kar:()=>Ci(11,35,3.5,C.yellow)+Ci(37,35,3.5,C.yellow)+R(1,13,46,22,11,C.sky)+Ci(13,13,6,C.paper)+Ci(24,10,7.5,C.paper)+Ci(35,13,6,C.paper),
+};
+function frameSVG(m,fw,fh){
+  if(m==='kasse'){const a=Math.min(fw*.42,64);
+    return P(`M10 6L-3 -12Q-4 -15 -1 -15L${a} -10L${a+4} 6Z`,C.plank)+P(`M${fw-10} 6L${fw+3} -12Q${fw+4} -15 ${fw+1} -15L${fw-a} -10L${fw-a-4} 6Z`,C.plank)
+      +R(0,0,fw,fh,9,C.card)+`<rect x="${fw/2-7}" y="0" width="14" height="${Math.min(fh,24)}" fill="${C.cream}" opacity=".7"/>`;}
+  if(m==='kar')return Ci(16,fh+1,6,C.yellow)+Ci(fw-16,fh+1,6,C.yellow)+R(-12,7,15,7,3.5,C.grey)+R(0,0,fw,fh,Math.min(18,fh*.4),C.sky);
+  return R(0,0,fw,fh,10,C.wood);
+}
+function cellSVG(m,alt){
+  if(m==='kasse')return `<rect width="34" height="22" rx="6" fill="${C.wood}"/><rect x="3" y="2.5" width="28" height="5" rx="2.5" fill="#3b2340" opacity=".22"/>`;
+  if(m==='kar')return Ci(9,13,7,C.paper)+Ci(19,10,8.5,C.paper)+Ci(27,14,6,C.paper);
+  return R(0,0,34,22,7,alt?C.yellow:C.pink)+`<path d="M6 6h10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>`;
+}
+
+const CATS={loaf:{svg:()=>loafSVG('happy'),w:100,h:80},noodle:{svg:noodleSVG,w:160,h:56},cube:{svg:cubeSVG,w:84,h:80},
+  boxcat:{svg:boxcatSVG,w:96,h:84},tubcat:{svg:tubcatSVG,w:112,h:86},gassy:{svg:gassySVG,w:80,h:90},night:{svg:nightSVG,w:104,h:84}};
+const GIFTS={sock:{svg:sockSVG,w:48,h:46},mouse:{svg:mouseSVG,w:52,h:34},feather:{svg:featherSVG,w:44,h:48},jar:{svg:jarSVG,w:40,h:48}};
+
+// ---------- yard pieces ----------
+// terrain is felt sewn into the yard (stitched edge, no sticker border): fixed.
+// toys are stickers: hers to move. That difference is the whole affordance.
+const stitch=d=>`<path d="${d}" fill="none" stroke="${C.paper}" stroke-width="1.4" stroke-dasharray="3 3" stroke-linecap="round" opacity=".85"/>`;
+const treeAP=()=>Ci(30,40,26,C.mint)+Ci(78,40,26,C.mint)+Ci(54,26,30,C.mint)+Ci(54,52,24,C.mint)
+  +stitch('M10 46A26 26 0 0 1 30 15A30 30 0 0 1 80 16A26 26 0 0 1 97 56A24 24 0 0 1 54 72A26 26 0 0 1 10 46Z')
+  +Ci(38,34,4.5,C.pink)+Ci(66,20,4.5,C.pink)+Ci(82,50,4.5,C.pink)+Ci(48,56,4.5,C.pink);
+const puddleAP=()=>E(54,26,52,22,C.sky)+stitch('M54 9A44 16 0 1 1 53.9 9Z')+`<ellipse cx="34" cy="17" rx="13" ry="4" fill="#fff" opacity=".5"/>`;
+const flowersAP=()=>R(2,6,104,18,9,C.wood)+stitch('M8 15H100')
+  +[[12,C.pink],[25,C.yellow],[38,C.paper],[51,C.pink],[64,C.yellow],[77,C.paper],[90,C.pink],[100,C.yellow]].map(([x,f],n)=>Ci(x,n%2?6:9,5.5,f)+dot(x,n%2?6:9,1.8,C.yellow)).join('');
+const rockAP=()=>P('M4 22Q2 8 14 5Q26 2 32 12Q36 22 28 24Z',C.grey)+stitch('M8 20Q7 10 15 8Q25 6 29 13');
+const tuftPath=(x,y,s)=>`M${x} ${y}l${-4*s} ${-14*s}l${6*s} ${9*s}l${1*s} ${-17*s}l${4*s} ${16*s}l${5*s} ${-13*s}l${-1*s} ${15*s}l${6*s} ${-9*s}l${-3*s} ${11*s}Z`;
+// toys
+const fanSVG=()=>E(16,36,13,3.5,C.grey)+R(13,19,6,17,3,C.grey)+E(13,17,8,7,C.grey)+E(28,17,7,16,C.sky)
+  +E(28,9,3,6,C.paper)+E(28,25,3,6,C.paper)+Ci(28,17,3,C.yellow);
+const fanWind=()=>L('M39 11q4 -2 8 0M40 18q5 -2 10 0M39 25q4 -2 8 0',1.6,C.paper);
+const yarnSVG=()=>Ci(18,18,15,C.pink)+L('M6 13Q18 5 30 15M4 20Q18 11 32 22M8 27Q18 20 28 29',1.3,C.paper)+L('M28 31Q36 37 42 33',1.6,C.pink);
+const appleSVG=()=>Ci(8,10,7,C.pink)+P('M8 4Q11 -1 15 1Q12 5 8 4Z',C.mint);
+const buttonSVG=f=>Ci(10,10,10,f)+dot(7,7,1.6,'#3b2340')+dot(13,7,1.6,'#3b2340')+dot(7,13,1.6,'#3b2340')+dot(13,13,1.6,'#3b2340');
+const thinkSVG=()=>flat('M18 2H50Q60 2 60 12V24Q60 34 50 34H18Q8 34 8 24V12Q8 2 18 2Z',C.paper)+Ci(8,40,4.5,C.paper)+Ci(3,47,2.5,C.paper)+num(20,27,15,'z')+num(31,22,21,'Z');
+const windSVG=()=>L('M2 8q8 -4 16 0t16 0M8 18q8 -4 16 0t12 0',1.8,C.paper);
+const threadSVG=(w,h)=>{const W=w*36,Hh=h*25;let d=`M-4 ${Hh*.3}`;for(let k=1;k<=5;k++)d+=`Q${W*(k-.5)/5} ${k%2?-6:Hh+4} ${W*k/5} ${Hh*(k%2?.7:.3)}`;return L(d,2.2,C.pink);};
+const dropSVG=()=>`<circle cx="4" cy="4" r="3.5" fill="${C.sky}" stroke="${C.paper}" stroke-width="1.2"/>`;
+
+// ---------- the yard ----------
+const COLS=12, ROWS=17, AR=25/36, SK=1.15;
+const TREE={i:0,j:1,w:3,h:3}, PUDDLE={i:6,j:4,w:3,h:2}, FLOWERS={i:9,j:0,w:3,h:1}, ROCK={i:7,j:8,w:1,h:1};
+const MEADOW=[{i:0,j:10,w:2,h:7},{i:10,j:12,w:2,h:5},{i:4,j:15,w:3,h:2}];
+const inRect=(r,i,j)=>i>=r.i&&i<r.i+r.w&&j>=r.j&&j<r.j+r.h;
+const isMeadow=(i,j)=>MEADOW.some(r=>inRect(r,i,j));
+const isTerrain=(i,j)=>inRect(TREE,i,j)||inRect(PUDDLE,i,j)||inRect(FLOWERS,i,j)||inRect(ROCK,i,j)||isMeadow(i,j);
+
+// ---------- requests: make n (×) or one side fixed (÷); + and − come later (joining beds, the mole) ----------
+const LV=[
+  {make:[6,8,9,10,12]},
+  {make:[12,14,15,16,18,20,7],fixW:[[10,2],[12,3],[15,3],[16,4],[14,2]]},
+  {make:[16,18,20,24,11,25,21],fixW:[[18,3],[20,4],[24,4],[21,3],[18,6]]},
+  {make:[24,28,30,32,35,36,40],fixW:[[28,4],[30,5],[35,5],[32,4],[36,6],[27,3]]},
+];
+const TW={make:55,fixW:45};
+const pick=a=>a[(Math.random()*a.length)|0];
+
+// ---------- state ----------
+const q=new URLSearchParams(location.search);
+const store={get:k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+if(q.has('reset'))try{localStorage.removeItem('kg2');localStorage.removeItem('kg-album')}catch(e){}
+const S=store.get('kg2')||{};
+const FAST=q.has('fast'), FIRST=FAST?6e3:30e3, EVERY=FAST?15e3:180e3;   // a resident's first button, then one every 3 minutes
+const HOUR=q.has('hour')?+q.get('hour'):new Date().getHours()+new Date().getMinutes()/60;
+const SUN={i:Math.round(clamp((HOUR-8)/10,0,1)*9),j:7,w:3,h:3};   // left in the morning, right in the afternoon
+let W,H,c,ch,U,gx,gy,trayTop,trayH,catW,catH,srcHomes=[];
+let succ=S.succ|0, mat=S.mat||'pude', req=S.req||null, cur=S.cur||null, res=S.res||[], buttons=S.buttons|0;
+let toys=S.toys||{fan:{i:2,j:5,d:0},yarn:{i:10,j:5}};
+let frame=null, cush=new Map(), cushMat=null, busy=false, drag=null, started=false;
+if(q.has('lvl')){succ=(+q.get('lvl')|0)*2;req=null;}
+const album=new Set(['loaf']);(store.get('kg-album')||[]).forEach(x=>album.add(x));
+const saveAlbum=()=>store.set('kg-album',[...album]);
+const save=()=>store.set('kg2',{succ,mat,req,cur:cur&&{i:cur.i,j:cur.j,w:cur.w,h:cur.h,m:cur.m},
+  res:res.map(r=>({i:r.i,j:r.j,w:r.w,h:r.h,m:r.m,cat:r.cat,t0:r.t0,paid:r.paid})),buttons,toys,seen:Date.now()});
+const catCount=()=>[...album].filter(x=>!x.startsWith('gift:')).length;
+const world=document.getElementById('world'), bg=document.getElementById('bg');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+// ---------- occupancy ----------
+function cellFree(i,j,{skipCur=false,skipToy=null}={}){
+  if(i<0||j<0||i>=COLS||j>=ROWS||isTerrain(i,j))return false;
+  for(const r of res)if(inRect(r,i,j))return false;
+  if(!skipCur&&cur&&inRect(cur,i,j))return false;
+  for(const k in toys)if(k!==skipToy&&toys[k].i===i&&toys[k].j===j)return false;
+  return true;
+}
+function rectFree(i,j,w,h,o){for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(!cellFree(i+a,j+b,o))return false;return true;}
+function findSpot(w,h,o){
+  const spots=[];
+  for(let j=0;j+h<=ROWS;j++)for(let i=0;i+w<=COLS;i++)if(rectFree(i,j,w,h,o))spots.push({i,j});
+  if(!spots.length)return null;
+  spots.sort((a,b)=>Math.abs(a.j+h/2-ROWS*.45)+Math.abs(a.i+w/2-COLS/2)*.6-(Math.abs(b.j+h/2-ROWS*.45)+Math.abs(b.i+w/2-COLS/2)*.6));
+  return spots[0];
+}
+function roomFor(r){
+  const o={skipCur:true},pairs=[];
+  if(r.t==='fixW')pairs.push([r.w,r.n/r.w]);
+  else for(let a=1;a<=COLS;a++)if(r.n%a===0&&r.n/a<=ROWS)pairs.push([a,r.n/a]);
+  pairs.sort((p,q)=>Math.abs(p[0]-p[1])-Math.abs(q[0]-q[1]));
+  for(const [a,b] of pairs){const sp=findSpot(a,b,o);if(sp)return sp;}
+  return null;
+}
+function fits(r){
+  const o={skipCur:true};
+  if(r.t==='fixW')return !!findSpot(r.w,r.n/r.w,o);
+  for(let a=1;a<=COLS;a++)if(r.n%a===0&&r.n/a<=ROWS&&findSpot(a,r.n/a,o))return true;
+  return false;
+}
+function gen(prev){
+  const lv=LV[Math.min(LV.length-1,Math.floor(succ/2))],types=Object.keys(lv);
+  for(let tries=0;tries<60;tries++){
+    let r=Math.random()*types.reduce((s,t)=>s+TW[t],0),t=types[0];
+    for(const k of types){r-=TW[k];if(r<0){t=k;break;}}
+    const v=pick(lv[t]),qq=t==='make'?{t,n:v,label:''+v}:{t,n:v[0],w:v[1],label:''+v[0]};
+    if(!fits(qq))continue;
+    if(prev&&tries<20&&qq.n===prev.n)continue;
+    return qq;
+  }
+  return null;
+}
+
+// ---------- sticker elements ----------
+// `face` sits on its own layer above the filtered sticker, so swapping it never re-renders border or shading
+function mk(role,wU,hU,inner,{filter='stk',z=20,k=1,cls='',face=null}={}){
+  const el=document.createElement('div'); el.className='stk '+cls; if(role) el.dataset.role=role;
+  el.dataset.w=wU; el.dataset.h=hU; el.dataset.k=k; el.style.zIndex=z;
+  el.innerHTML=`<div class="body"><svg viewBox="0 0 ${wU} ${hU}"><g${filter?` filter="url(#${filter})"`:''}>${inner}</g>${face!==null?`<g>${face}</g>`:''}</svg></div>`;
+  if(face!==null)el._face=el.querySelector('svg>g:last-child');
+  sizeEl(el); world.appendChild(el); return el;
+}
+function sizeEl(el){const b=el.firstElementChild,k=+el.dataset.k;b.style.width=el.dataset.w*U*k+'px';b.style.height=el.dataset.h*U*k+'px';}
+const pxW=el=>el.dataset.w*U*el.dataset.k, pxH=el=>el.dataset.h*U*el.dataset.k;
+const setInner=(el,s)=>{el.querySelector('svg>g').innerHTML=s};
+function place(el,x,y){el._x=x;el._y=y;el.style.transform=`translate(${x}px,${y}px)`;}
+const body=el=>el.firstElementChild;
+const pop=(el,delay=0)=>body(el).animate([{transform:'scale(0)'},{transform:'scale(1.18)'},{transform:'scale(1)'}],{duration:260,delay,easing:'ease-out',fill:'backwards'});
+const slap=el=>body(el).animate([{transform:'scale(1.16,.84)'},{transform:'scale(.95,1.06)'},{transform:'scale(1)'}],{duration:220,easing:'ease-out'});
+const nudge=el=>body(el).animate([{transform:'rotate(0)'},{transform:'rotate(-6deg)'},{transform:'rotate(5deg)'},{transform:'rotate(0)'}],{duration:420});
+const hop=(el,h=10,d=320)=>body(el).animate([{transform:'translateY(0)'},{transform:`translateY(${-h}px)`},{transform:'translateY(0)'}],{duration:d,easing:'ease-out'});
+const shake=el=>el.animate([{translate:'0 0'},{translate:'-4px 0'},{translate:'4px 0'},{translate:'-2px 0'},{translate:'0 0'}],{duration:280});
+const vanish=(el,delay=0)=>body(el).animate([{transform:'scale(1)',opacity:1},{transform:'scale(1.2)',opacity:1,offset:.3},{transform:'scale(0)',opacity:0}],{duration:240,delay,fill:'forwards'}).finished.then(()=>el.remove());
+function lift(el,on){body(el).classList.toggle('lifted',on);const g=el.querySelector('svg>g');if(g.getAttribute('filter'))g.setAttribute('filter',on?'url(#lifted)':'url(#stk)');
+  if(on){el._z=el.style.zIndex;el.style.zIndex=60;}else el.style.zIndex=el._z;}
+function moveTo(el,to,dur,{arc=0,spin=0,ease='ease-in-out'}={}){
+  const from={x:el._x,y:el._y},mx=(from.x+to.x)/2,my=Math.min(from.y,to.y)-arc;
+  const kf=arc?[{transform:`translate(${from.x}px,${from.y}px)`},{transform:`translate(${mx}px,${my}px)`,offset:.5},{transform:`translate(${to.x}px,${to.y}px)`}]
+              :[{transform:`translate(${from.x}px,${from.y}px)`},{transform:`translate(${to.x}px,${to.y}px)`}];
+  if(spin)body(el).animate([{transform:'rotate(0)'},{transform:`rotate(${spin}deg)`}],{duration:dur,easing:ease});
+  const a=el.animate(kf,{duration:dur,easing:ease,fill:'forwards'});
+  return a.finished.then(()=>{place(el,to.x,to.y);a.cancel();});
+}
+function fly(el,from,to,delay=0,dur=420,arc=50){
+  const mx=(from.x+to.x)/2,my=Math.min(from.y,to.y)-arc;
+  const a=el.animate([
+    {transform:`translate(${from.x}px,${from.y}px) scale(.3)`,opacity:0},
+    {transform:`translate(${mx}px,${my}px) scale(1.1)`,opacity:1,offset:.5},
+    {transform:`translate(${to.x}px,${to.y}px) scale(1)`,opacity:1}],{duration:dur,delay,easing:'ease-in-out',fill:'both'});
+  return a.finished.then(()=>{place(el,to.x,to.y);a.cancel();slap(el);});
+}
+const cx=i=>gx+i*c, cy=j=>gy+j*ch;
+const cellXY=(i,j)=>({x:cx(i),y:cy(j)-5*U});
+const atCell=(el,i,j,lift=2)=>({x:cx(i)+c/2-pxW(el)/2,y:cy(j)+ch-pxH(el)+lift*U});   // bottom-centred on a cell
+const centreOf=el=>({x:el._x+pxW(el)/2,y:el._y+pxH(el)/2});
+
+// ---------- layout ----------
+let cat,bubble,srcs=[],albumEl,countChip,btnEl,btnChip,handle,wChip,hChip,ghost,treeEl,duck,cloudEl=null,waiting=[];
+const toyEl={};
+function chip(z=14){const d=document.createElement('div');d.className='chip';d.style.zIndex=z;d.hidden=true;world.appendChild(d);return d;}
+function setBubble(t){const w=bubbleW(t);bubble.dataset.w=w;bubble.querySelector('svg').setAttribute('viewBox',`0 0 ${w} 52`);setInner(bubble,bubbleSVG(t));sizeEl(bubble);}
+function init(){
+  cat=mk('cat',100,80,loafBody(),{k:1.15,z:25,face:LOAF_FACE.ask});
+  bubble=mk('cat',80,52,'',{k:1.05,z:26});bubble.hidden=true;
+  srcs=MATS.map((m,i)=>{const el=mk('src',48,37,SRC[m](),{k:SK,z:22,cls:'src'+(!cur&&i===0?' hint':'')});el.dataset.m=m;return el;});
+  albumEl=mk('album',44,38,albumSVG(),{k:1.15,z:22});
+  countChip=document.createElement('div');countChip.className='chip count';countChip.textContent=catCount();albumEl.appendChild(countChip);
+  btnEl=mk('purse',20,20,buttonSVG(C.yellow),{k:1.35,z:22});
+  btnChip=document.createElement('div');btnChip.className='chip count';btnChip.textContent=buttons;btnEl.appendChild(btnChip);
+  treeEl=mk(null,108,75,treeAP(),{filter:'ap',z:9});
+  [['flowers',FLOWERS,flowersAP,108,25],['rock',ROCK,rockAP,36,25],['puddle',PUDDLE,puddleAP,108,52]].forEach(([n,r,f,w,h])=>{const el=mk(null,w,h,f(),{filter:'ap',z:2});el._r=r;el._n=n;treeEl['_'+n]=el;});
+  duck=mk(null,36,30,duckSVG(),{k:.9,z:18});
+  toyEl.fan=mk('toy',52,40,fanSVG(),{k:.85,z:17,face:fanWind()});toyEl.fan.dataset.key='fan';
+  toyEl.yarn=mk('toy',44,40,yarnSVG(),{k:.75,z:17});toyEl.yarn.dataset.key='yarn';
+  handle=document.createElement('div');handle.className='stk handle hint';handle.dataset.role='handle';handle.style.zIndex=13;handle.hidden=true;
+  handle.innerHTML=`<div class="body"><svg viewBox="0 0 44 44"><g filter="url(#flapShadow)"><path d="M27 6L6 27Q1.5 13 4 4Q13 1.5 27 6Z" fill="url(#flapG)"/></g></svg></div>`;
+  world.appendChild(handle);
+  ghost=document.createElement('div');ghost.className='ghost';ghost.hidden=true;world.appendChild(ghost);
+  wChip=chip();hChip=chip();
+  res.forEach(r=>buildRes(r,false));
+  layout();
+}
+function layout(){
+  W=world.clientWidth;H=world.clientHeight;
+  trayH=Math.round(clamp(H*.12,84,108));trayTop=H-trayH;
+  const cw=(W-24)/COLS, topMin=100*1.15*(cw/36)+64;
+  c=Math.min(cw,(trayTop-10-topMin)/(ROWS*AR),44);ch=c*AR;U=c/36;
+  world.style.setProperty('--u',U);
+  gx=(W-c*COLS)/2;gy=trayTop-10-ch*ROWS;
+  catW=100*1.15*U;catH=80*1.15*U;
+  const sw=48*U*SK,sh=37*U*SK,gap=18*U,tw=MATS.length*sw+(MATS.length-1)*gap;
+  srcHomes=MATS.map((m,i)=>({x:(W-tw)/2+i*(sw+gap),y:trayTop+(trayH-sh)/2+2}));
+  [cat,bubble,albumEl,btnEl,...srcs,treeEl,duck,toyEl.fan,toyEl.yarn,treeEl._flowers,treeEl._rock,treeEl._puddle].forEach(sizeEl);
+  place(cat,gx,gy-catH+4*U);
+  place(bubble,cat._x+catW*.86,cat._y-8*U);
+  srcs.forEach((el,i)=>place(el,srcHomes[i].x,srcHomes[i].y));
+  place(albumEl,W-gx-pxW(albumEl)-4,Math.max(12,gy-catH-70*U));
+  place(btnEl,albumEl._x-pxW(btnEl)-34*U,albumEl._y+6*U);
+  place(treeEl,cx(TREE.i),cy(TREE.j)+2*U);
+  for(const n of ['flowers','rock','puddle']){const el=treeEl['_'+n],r=el._r;place(el,cx(r.i),cy(r.j)+(n==='puddle'?-1*U:0));}
+  placeDuck();placeToys();
+  res.forEach(placeRes);
+  drawBg();
+  if(cur)layoutBed(false);
+  if(cloudEl)placeWaiting();
+}
+function placeDuck(){place(duck,cx(PUDDLE.i)+PUDDLE.w*c/2-pxW(duck)/2,cy(PUDDLE.j)+PUDDLE.h*ch/2-pxH(duck)*.7);}
+function placeToys(){
+  for(const k in toys){const el=toyEl[k],t=toys[k],p=atCell(el,t.i,t.j);place(el,p.x,p.y);}
+  const d=toys.fan.d,sv=toyEl.fan.querySelector('svg');
+  sv.style.transform=d===0?'':d===2?'scaleX(-1)':d===1?'rotate(90deg)':'rotate(-90deg)';
+}
+function drawBg(){
+  const gt=gy-catH*.32, fTop=gt-58*U, pw=24*U, step=30*U;
+  let s=`<rect width="${W}" height="${H}" fill="${C.felt}"/><rect width="${W}" height="${H}" fill="#fff" filter="url(#felt)"/>`;
+  const sunX=gx+30*U+clamp((HOUR-8)/10,0,1)*(W-2*gx-60*U);
+  s+=`<g filter="url(#stk)"><circle cx="${sunX}" cy="${Math.max(24*U,fTop-96*U)}" r="${14*U}" fill="${C.yellow}" filter="url(#cel)"/></g>`;
+  // the gap in the fence the sun comes through
+  const gapX=cx(SUN.i+1)-pw/2;
+  let f=`<rect x="-10" y="${gt-42*U}" width="${W+20}" height="${8*U}" rx="${4*U}" fill="${C.wood}"/>`;
+  for(let x=-6;x<W;x+=step){if(Math.abs(x+pw/2-(gapX+pw/2))<step/2)continue;
+    f+=`<path d="M${x} ${gt+10}V${fTop+12*U}Q${x+pw/2} ${fTop-2*U} ${x+pw} ${fTop+12*U}V${gt+10}Z" fill="${C.plank}" filter="url(#cel)"/>`;}
+  s+=`<g filter="url(#stk)">${f}</g>`;
+  const grass=`M0 ${gt+6}Q${W*.3} ${gt-8} ${W*.62} ${gt+2}T${W} ${gt-4}V${H}H0Z`;
+  s+=`<path d="${grass}" fill="${C.grass}"/><path d="${grass}" fill="#fff" filter="url(#felt)"/>`;
+  // mown checkerboard = where she can build; long rough grass = where she can't
+  let m='';
+  for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(!isMeadow(i,j))m+=`<rect x="${cx(i)}" y="${cy(j)}" width="${c+.4}" height="${ch+.4}" fill="#fff" opacity="${(i+j)%2?.12:.045}"/>`;
+  s+=m;
+  let t='';const tuft=(x,y,sc)=>t+=`<path d="${tuftPath(x.toFixed(1),y.toFixed(1),sc)}" fill="#1d4f36" opacity=".62"/>`+`<path d="M${(x+1).toFixed(1)} ${(y-1).toFixed(1)}l${1.4*sc} ${-13*sc}l${2.4*sc} ${12*sc}Z" fill="${C.mint}" opacity=".45"/>`;
+  for(const r of MEADOW)for(let j=r.j;j<r.j+r.h;j++)for(let i=r.i;i<r.i+r.w;i++){tuft(cx(i)+6*U,cy(j)+ch,U*1.05);tuft(cx(i)+20*U,cy(j)+ch*.65,U*.95);tuft(cx(i)+30*U,cy(j)+ch*1.05,U*.8);}
+  for(let x=4;x<W;x+=16*U)tuft(x+((x*7)%9)*U,gt+20*U+((x*13)%7)*U,U*.85);
+  for(let y=gy;y<gy+ROWS*ch;y+=13*U){tuft(gx-10*U,y+10*U,U*.8);tuft(gx+COLS*c+2*U,y+16*U,U*.8);}
+  s+=t;
+  // sunbeam through the gap, landing as a warm patch
+  const px=cx(SUN.i),py=cy(SUN.j),pW=SUN.w*c,pH=SUN.h*ch;
+  s+=`<path d="M${gapX} ${fTop+12*U}L${gapX+pw} ${fTop+12*U}L${px+pW} ${py}L${px+pW} ${py+pH}L${px} ${py+pH}L${px} ${py}Z" fill="${C.yellow}" opacity=".16"/>`;
+  s+=`<rect x="${px}" y="${py}" width="${pW}" height="${pH}" rx="${10*U}" fill="${C.yellow}" opacity=".42"/>`;
+  s+=`<rect x="${px+3*U}" y="${py+3*U}" width="${pW-6*U}" height="${pH-6*U}" rx="${8*U}" fill="none" stroke="${C.yellow}" stroke-width="${1.6*U}" stroke-dasharray="${1*U} ${5*U}" stroke-linecap="round"/>`;
+  s+=`<g filter="url(#flapShadow)"><rect x="8" y="${trayTop+4}" width="${W-16}" height="${trayH-8}" rx="14" fill="${C.sheet}"/></g>`;
+  bg.setAttribute('viewBox',`0 0 ${W} ${H}`);bg.innerHTML=s;
+}
+const inSun=(i,j)=>inRect(SUN,i,j);
+
+// ---------- the bed she is building ----------
+function layoutBed(animNew){
+  const x0=cx(cur.i),y0=cy(cur.j),fw=cur.w*36+12,fh=cur.h*25+10;
+  cur.m=cur.m||mat;
+  if(!frame)frame=mk('bed',fw,fh,'',{z:10});
+  frame.dataset.w=fw;frame.dataset.h=fh;frame.querySelector('svg').setAttribute('viewBox',`0 0 ${fw} ${fh}`);
+  setInner(frame,frameSVG(cur.m,fw,fh));sizeEl(frame);place(frame,x0-6*U,y0-5*U);
+  if(cushMat!==cur.m){for(const el of cush.values())el.remove();cush.clear();cushMat=cur.m;}
+  const want=new Set();
+  for(let j=0;j<cur.h;j++)for(let i=0;i<cur.w;i++){
+    const key=i+','+j;want.add(key);let el=cush.get(key);
+    if(!el){el=mk('bed',34,22,cellSVG(cur.m,(i+j)%2),{z:11,filter:cur.m==='pude'?'stk':null});cush.set(key,el);if(animNew)pop(el,Math.min((i+j)*22,400));}
+    else sizeEl(el);
+    place(el,x0+i*c+U,y0+j*ch+1.5*U);
+  }
+  for(const [k,el] of cush)if(!want.has(k)){cush.delete(k);vanish(el);}
+  const cw=1.9*15*U,chh=1.5*15*U,locked=req&&req.t==='fixW';
+  wChip.textContent=cur.w;hChip.textContent=cur.h;wChip.hidden=hChip.hidden=false;
+  wChip.classList.toggle('locked',!!locked);handle.classList.toggle('v',!!locked);
+  place(wChip,x0+cur.w*c/2-cw/2,y0-5*U-chh-6);
+  place(hChip,Math.max(2,x0-6*U-cw-6),y0+cur.h*ch/2-chh/2);
+  handle.hidden=false;place(handle,x0+cur.w*c+6*U-22,y0+cur.h*ch+5*U-22);
+}
+function clearBed(){if(frame){frame.remove();frame=null;}for(const el of cush.values())el.remove();cush.clear();cushMat=null;handle.hidden=wChip.hidden=hChip.hidden=true;}
+// the ghost shows where the bed will grow to; the bed snaps there on release
+function bestSize(nw,nh){
+  let best=null;
+  for(let h=nh;h>=1;h--)for(let w=nw;w>=1;w--){
+    if((req&&req.t==='fixW')&&w!==cur.w)continue;
+    if(best&&w*h<=best.w*best.h)continue;
+    if(rectFree(cur.i,cur.j,w,h,{skipCur:true}))best={w,h};
+  }
+  return best||{w:cur.w,h:cur.h};
+}
+function showGhost(w,h){
+  ghost.hidden=false;
+  Object.assign(ghost.style,{transform:`translate(${cx(cur.i)-3*U}px,${cy(cur.j)-3*U}px)`,width:w*c+6*U+'px',height:h*ch+6*U+'px'});
+  const cw=1.9*15*U,chh=1.5*15*U;
+  if(wChip.textContent!=w){wChip.textContent=w;wChip.animate([{scale:1.3},{scale:1}],{duration:160});}
+  if(hChip.textContent!=h){hChip.textContent=h;hChip.animate([{scale:1.3},{scale:1}],{duration:160});}
+  place(wChip,cx(cur.i)+w*c/2-cw/2,cy(cur.j)-5*U-chh-6);
+  place(hChip,Math.max(2,cx(cur.i)-6*U-cw-6),cy(cur.j)+h*ch/2-chh/2);
+  place(handle,cx(cur.i)+w*c+6*U-22,cy(cur.j)+h*ch+5*U-22);
+}
+
+// ---------- residents: beds that stayed, with whoever moved in ----------
+const fitK=(d,r)=>clamp(Math.min((r.w*36+10)/d.w,(r.h*25+16)/d.h),.45,1.1);
+function bedSticker(r,face='zz'){
+  const fw=r.w*36+12,fh=r.h*25+10;let base=frameSVG(r.m,fw,fh),kits='';
+  for(let b=0;b<r.h;b++)for(let a=0;a<r.w;a++){
+    base+=`<g transform="translate(${7+a*36} ${6.5+b*25})">${cellSVG(r.m,(a+b)%2)}</g>`;
+    if(face)kits+=`<g transform="translate(${6+a*36} ${b*25})" filter="url(#stk)">${kittenSVG(KIT[(a*3+b*5+r.i+r.j)%4],face,r.m)}</g>`;}
+  return {fw,fh,inner:`<g filter="url(#stk)">${base}</g>`+kits};
+}
+function buildRes(r,anim){
+  const b=bedSticker(r);
+  r._bed=mk('res',b.fw,b.fh,b.inner,{z:8,filter:null});r._bed._r=r;
+  if(!CATS[r.cat])r._cat=[];
+  else{const d=CATS[r.cat];r._cat=[mk('res',d.w,d.h,d.svg(),{z:12,k:fitK(d,r)})];}
+  r._cat.forEach(el=>el._r=r);
+  r._zz=mk(null,36,26,zzSVG(),{z:13,k:.6,filter:null});
+  r._btn=mk('btn',20,20,buttonSVG(C.yellow),{z:41,k:1.25});r._btn._r=r;
+  r._btnChip=document.createElement('div');r._btnChip.className='chip count';r._btn.appendChild(r._btnChip);r._btn.hidden=true;
+  if(anim){pop(r._bed);r._cat.forEach((el,n)=>pop(el,120+n*60));}
+  breathe(r);
+}
+function breathe(r){
+  r._cat.forEach(el=>body(el).animate([{transform:'scale(1,1)'},{transform:'scale(1.03,.97)'}],{duration:1600+rnd(0,400),iterations:Infinity,direction:'alternate',easing:'ease-in-out',delay:rnd(0,600)}));
+  body(r._zz).animate([{transform:'translate(0,0)',opacity:1},{transform:'translate(5px,-8px)',opacity:.35}],{duration:1700,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});
+}
+function placeRes(r){
+  [r._bed,r._zz,r._btn,...r._cat].forEach(sizeEl);
+  place(r._bed,cx(r.i)-6*U,cy(r.j)-5*U);
+  if(r._cat[0]){const el=r._cat[0];place(el,cx(r.i)+r.w*c/2-pxW(el)/2,cy(r.j)+r.h*ch-pxH(el)*.9);}
+  const top=r._cat[0]?r._cat[0]._y:cy(r.j)-4*U;
+  place(r._zz,cx(r.i)+r.w*c-14*U,top-14*U);
+  place(r._btn,cx(r.i)+r.w*c-6*U,cy(r.j)+r.h*ch-10*U);
+}
+const accrued=r=>{const t=Date.now()-r.t0;return t<FIRST?0:1+Math.floor((t-FIRST)/EVERY);};
+function tickButtons(){
+  for(const r of res){const p=accrued(r)-r.paid;
+    if(p>0){const was=r._btn.hidden;r._btn.hidden=false;r._btnChip.textContent=p;r._btnChip.hidden=p<2;if(was)pop(r._btn);}
+    else r._btn.hidden=true;}
+}
+async function collectButtons(r,silent){
+  const p=accrued(r)-r.paid;if(p<=0)return;
+  r.paid+=p;r._btn.hidden=true;
+  const to={x:btnEl._x,y:btnEl._y};
+  for(let n=0;n<Math.min(p,5);n++){
+    const b=mk(null,20,20,buttonSVG(pick([C.yellow,C.pink,C.sky,C.mint])),{z:70,k:1.2});
+    fly(b,{x:r._btn._x,y:r._btn._y},to,n*90,520,50).then(()=>b.remove());
+  }
+  await wait(Math.min(p,5)*90+520);
+  buttons+=p;btnChip.textContent=buttons;btnChip.animate([{scale:1.6},{scale:1}],{duration:300});if(!silent)slap(btnEl);
+  save();
+}
+async function retire(r){
+  await collectButtons(r,true);   // nothing is ever lost: buttons come with them
+  res=res.filter(x=>x!==r);
+  r._zz.remove();r._btn.remove();
+  // they wake up, stretch, and wander off; you can watch them go
+  setInner(r._bed,bedSticker(r,'ok').inner);hop(r._bed,5);
+  await wait(450);
+  const n=Math.min(r.w*r.h,8),walkers=[];
+  for(let k=0;k<n;k++){const a=k%r.w,b=Math.floor(k/r.w)%r.h,el=mk(null,36,25,kittenSVG(KIT[(a*3+b*5+r.i+r.j)%4],'ok'),{z:30});
+    const p=cellXY(r.i+a,r.j+b);place(el,p.x,p.y);walkers.push(el);}
+  setInner(r._bed,bedSticker(r,null).inner);
+  await Promise.all([...walkers.map((el,k)=>wait(k*70).then(()=>moveTo(el,{x:W+20,y:el._y-rnd(0,30)*U},800,{arc:6*U}))),
+    ...r._cat.map(el=>moveTo(el,{x:W+20,y:el._y-10*U},900,{arc:10*U}))]);
+  walkers.forEach(el=>el.remove());r._cat.forEach(el=>el.remove());
+  await vanish(r._bed);
+}
+
+// ---------- input ----------
+const pt=e=>{const r=world.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+const cellAt=p=>({i:Math.floor((p.x-gx)/c),j:Math.floor((p.y-gy)/ch)});
+world.addEventListener('pointerdown',e=>{
+  if(document.getElementById('albumView')||!started)return;
+  const t=e.target.closest('[data-role]');if(!t)return;
+  const p=pt(e),role=t.dataset.role;
+  if(['cat','album','purse'].includes(role))drag={role,el:t};
+  else if(role==='btn')drag={role,el:t};
+  else if(role==='res')drag={role,el:t};
+  else if(busy)return;
+  else if(role==='src')drag={role,el:t,dx:p.x-t._x,dy:p.y-t._y,sx:p.x,sy:p.y,moved:false};
+  else if(role==='toy')drag={role,el:t,key:t.dataset.key,dx:p.x-t._x,dy:p.y-t._y,sx:p.x,sy:p.y,moved:false};
+  else if(role==='bed'&&cur){const c0=cellAt(p);drag={role,oi:c0.i-cur.i,oj:c0.j-cur.j};body(frame).classList.add('lifted');watch(true);}
+  else if(role==='handle'&&cur){drag={role,t:0,w:cur.w,h:cur.h};handle.classList.remove('hint');watch(true);}
+  if(drag)try{world.setPointerCapture(e.pointerId)}catch(_){}
+});
+world.addEventListener('pointermove',e=>{
+  if(!drag)return;const p=pt(e);
+  if(drag.role==='src'||drag.role==='toy'){
+    if(!drag.moved&&Math.hypot(p.x-drag.sx,p.y-drag.sy)>7){drag.moved=true;lift(drag.el,true);if(drag.role==='src')srcs.forEach(s=>s.classList.remove('hint'));}
+    if(drag.moved)place(drag.el,p.x-drag.dx,p.y-drag.dy);
+  }else if(drag.role==='bed'){
+    const c0=cellAt(p),ni=clamp(c0.i-drag.oi,0,COLS-cur.w),nj=clamp(c0.j-drag.oj,0,ROWS-cur.h);
+    if((ni!==cur.i||nj!==cur.j)&&rectFree(ni,nj,cur.w,cur.h,{skipCur:true})){cur.i=ni;cur.j=nj;layoutBed(false);}
+  }else if(drag.role==='handle'){
+    let nw=clamp(Math.round((p.x-cx(cur.i))/c),1,COLS-cur.i);const nh=clamp(Math.round((p.y-cy(cur.j))/ch),1,ROWS-cur.j);
+    if(req.t==='fixW'&&nw!==cur.w){nw=cur.w;const now=performance.now();if(now-drag.t>600){drag.t=now;shake(wChip);}}
+    const b=bestSize(nw,nh);
+    if(b.w<nw||b.h<nh){const now=performance.now();if(now-drag.t>700){drag.t=now;shake(ghost);}}
+    if(b.w!==drag.w||b.h!==drag.h){drag.w=b.w;drag.h=b.h;}
+    showGhost(drag.w,drag.h);
+  }
+});
+function endDrag(){
+  if(!drag)return;const d=drag;drag=null;
+  if(d.role==='cat')check();
+  else if(d.role==='album')openAlbum();
+  else if(d.role==='purse'){slap(btnEl);}
+  else if(d.role==='btn')collectButtons(d.el._r);
+  else if(d.role==='res'){const r=d.el._r;hop(d.el,8);if(accrued(r)-r.paid>0)collectButtons(r);}
+  else if(d.role==='src'){
+    const el=d.el,m=el.dataset.m,home=srcHomes[MATS.indexOf(m)];
+    if(!d.moved){   // a tap places a bed (or re-covers the one she has)
+      if(cur){cur.m=m;mat=m;layoutBed(true);slap(frame);}
+      else{const s=roomFor(req)||findSpot(1,1);if(s){mat=m;cur={i:s.i,j:s.j,w:1,h:1,m};layoutBed(true);slap(frame);}}
+      pop(el);srcs.forEach(s=>s.classList.remove('hint'));save();return;
+    }
+    lift(el,false);
+    const ce=cellAt({x:el._x+pxW(el)/2,y:el._y+pxH(el)/2});
+    if(ce.i>=0&&ce.i<COLS&&ce.j>=0&&ce.j<ROWS&&(cur||cellFree(ce.i,ce.j))){
+      mat=m;
+      if(!cur)cur={i:ce.i,j:ce.j,w:1,h:1,m};else cur.m=m;
+      layoutBed(true);slap(frame);place(el,home.x,home.y);pop(el);save();
+    }else moveTo(el,home,260);
+  }else if(d.role==='toy'){
+    const el=d.el,k=d.key;
+    if(!d.moved){if(k==='fan'){toys.fan.d=(toys.fan.d+1)%4;placeToys();slap(el);save();}else hop(el,8);return;}
+    lift(el,false);
+    const ce=cellAt(centreOf(el));
+    if(cellFree(ce.i,ce.j,{skipToy:k})){toys[k].i=ce.i;toys[k].j=ce.j;}
+    const p=atCell(el,toys[k].i,toys[k].j);moveTo(el,p,140).then(()=>slap(el));save();
+  }else if(d.role==='bed'){body(frame).classList.remove('lifted');slap(frame);watch(false);save();}
+  else if(d.role==='handle'){
+    watch(false);ghost.hidden=true;
+    if(d.w!==cur.w||d.h!==cur.h){cur.w=d.w;cur.h=d.h;layoutBed(true);slap(frame);}else layoutBed(false);
+    save();
+  }
+}
+world.addEventListener('pointerup',endDrag);
+world.addEventListener('pointercancel',endDrag);
+document.addEventListener('gesturestart',e=>e.preventDefault());
+
+// ---------- a request: the cat, the problem, the number ----------
+function placeWaiting(){
+  const bw=bubbleW(req.label)*U*1.05;
+  const x=Math.min(bubble._x+bw+16*U,W-gx-80*U),y=cat._y-12*U;
+  place(cloudEl,x,y);
+  waiting.forEach((el,n)=>place(el,x+(n*18-4)*U,y+40*U+(n%2)*3*U));
+}
+async function requestScene(){
+  busy=true;
+  setBubble(req.label);bubble.hidden=false;
+  if(!cloudEl){cloudEl=mk(null,62,50,thinkSVG(),{z:24,k:.8});cloudEl.style.opacity=0;}
+  waiting.forEach(el=>el.remove());waiting=[0,1,2].map(n=>mk(null,36,25,kittenSVG(KIT[n],n===1?'peek':'ok'),{z:23,k:.95}));
+  placeWaiting();cloudEl.style.opacity=1;
+  pop(cloudEl);waiting.forEach((el,n)=>{pop(el,200+n*110);
+    body(el).animate([{transform:'scale(1,1)'},{transform:'scale(1.04,.95)'}],{duration:1300,iterations:Infinity,direction:'alternate',easing:'ease-in-out',delay:600+n*200});});
+  await wait(650);pop(bubble);
+  if(req.t==='fixW'&&!(cur&&cur.w===req.w)){
+    clearBed();const s=findSpot(req.w,req.n/req.w,{skipCur:true})||findSpot(req.w,1,{skipCur:true});
+    cur={i:s.i,j:s.j,w:req.w,h:1,m:mat};layoutBed(true);handle.classList.add('hint');
+  }
+  busy=false;save();flash('lookR',900);
+}
+
+// ---------- tap the cat: kittens move in, the cat checks ----------
+async function check(){
+  if(busy)return;
+  if(!cur){nudge(cat);pop(bubble);srcs.forEach(s=>pop(s));return;}
+  busy=true;setFace('lookD');
+  const N=req.n,A=cur.w*cur.h,cells=[];
+  for(let j=0;j<cur.h;j++)for(let i=0;i<cur.w;i++)cells.push([cur.i+i,cur.j+j]);
+  const from=cloudEl?{x:cloudEl._x,y:cloudEl._y+30*U}:{x:cat._x+catW*.4,y:cat._y};
+  waiting.forEach(el=>el.style.opacity=0);
+  const spillN=Math.max(0,Math.min(N-A,8)),total=Math.min(N,A)+spillN;
+  const stagger=clamp(1100/total,12,90),kits=[];
+  for(let k=0;k<total;k++){
+    const f=pick(KIT),inBed=k<A&&k<N,el=mk(null,36,25,kittenSVG(f,'ok',inBed?cur.m:'pude'),{z:30+k});el._f=f;
+    if(inBed){el._cell=cells[k];fly(el,from,cellXY(...cells[k]),k*stagger);}
+    else{el._spill=true;fly(el,from,{x:cat._x+catW*(.25+(k%3)*.18),y:cat._y-(8+Math.floor((k-A)/3)*9)*U},k*stagger,420,30);}
+    kits.push(el);
+  }
+  await wait(total*stagger+480);
+  if(A===N)await success(kits);
+  else await oops(kits,A<N?null:cells.slice(N));
+  busy=false;save();
+}
+// wrong count: a short gag (under 2 s), then she can fix it and tap again
+async function oops(kits,empty){
+  let birds=[];
+  if(!empty){setFace('sulk');kits.filter(k=>k._spill).forEach(k=>{setInner(k,kittenSVG(k._f,'cross'));hop(k,6);});slap(cat);}
+  else{setFace('glare');
+    birds=empty.sort(()=>Math.random()-.5).slice(0,3).map((cell,i)=>{const el=mk(null,36,25,pigeonSVG(),{z:45});fly(el,{x:W+30,y:gy-60*U},cellXY(...cell),i*160,480,30);return el;});}
+  await wait(1100);
+  await Promise.all([...kits.map((el,i)=>vanish(el,i*6)),...birds.map(el=>moveTo(el,{x:W+40,y:-40},420).then(()=>el.remove()))]);
+  waiting.forEach(el=>el.style.opacity=1);
+  setFace('ask');pop(bubble);
+}
+// a taste is tied to what SHE chose (shape, material), so the cause can be found again
+function tasteOf(b){
+  const r=Math.max(b.w,b.h)/Math.min(b.w,b.h);
+  if(r>=3&&Math.max(b.w,b.h)>=4)return 'noodle';
+  if(b.w===b.h&&b.w>=2)return 'cube';
+  if(b.m==='kasse')return 'boxcat';
+  if(b.m==='kar')return 'tubcat';
+  return null;
+}
+async function success(kits){
+  succ++;setFace('happy');handle.hidden=wChip.hidden=hChip.hidden=true;
+  kits.forEach((el,i)=>{hop(el,9);if(inSun(...el._cell))setTimeout(()=>setInner(el,kittenSVG(el._f,'zz',cur.m)),300);});
+  if(cloudEl)vanish(cloudEl);cloudEl=null;waiting.forEach(el=>el.remove());waiting=[];
+  await wait(600);
+  await runChain(kits);
+  await wait(500);
+  // whoever likes this bed moves in; the kittens go home
+  const name=tasteOf(cur)||(Math.random()<.3?'gassy':'none');
+  await Promise.all(kits.map((el,i)=>vanish(el,i*8)));
+  const r={i:cur.i,j:cur.j,w:cur.w,h:cur.h,m:cur.m,cat:name,t0:Date.now(),paid:0};
+  clearBed();cur=null;
+  res.push(r);buildRes(r,true);placeRes(r);
+  await wait(500);
+  if(CATS[name]&&!album.has(name))await collect(name,r._cat[0]);
+  if(res.length>3)await retire(res[0]);
+  setFace('ask');
+  let nq=gen(req);
+  while(!nq&&res.length){await retire(res[0]);nq=gen(req);}
+  req=nq||{t:'make',n:6,label:'6'};
+  save();
+  await requestScene();
+}
+async function collect(name,el){
+  album.add(name);saveAlbum();
+  const d=CATS[name],g=mk(null,d.w,d.h,d.svg(),{z:60,k:.8});
+  await fly(g,{x:el._x,y:el._y},{x:albumEl._x,y:albumEl._y},0,700,80);
+  await vanish(g);
+  countChip.textContent=catCount();countChip.animate([{scale:1.6},{scale:1}],{duration:300});pop(albumEl);
+}
+
+// ---------- the chain reaction ----------
+// wind goes where the fan points, the duck flies with it, yarn and apples roll downhill (towards the tray)
+const DX=[1,0,-1,0],DY=[0,1,0,-1];
+function whatAt(i,j,mover){
+  if(i<0||j<0||i>=COLS||j>=ROWS)return{t:'out'};
+  if(inRect(PUDDLE,i,j))return mover==='duck'?null:{t:'duck'};
+  if(inRect(TREE,i,j))return mover==='apple'?null:{t:'tree'};
+  if(toys.yarn.i===i&&toys.yarn.j===j&&mover!=='yarn')return{t:'yarn'};
+  if(toys.fan.i===i&&toys.fan.j===j&&mover!=='wind')return{t:'bonk'};
+  if(cur&&inRect(cur,i,j))return{t:'bed'};
+  for(const r of res)if(inRect(r,i,j))return{t:'res',r};
+  if(inRect(ROCK,i,j)||inRect(FLOWERS,i,j))return{t:'bonk'};
+  if(isMeadow(i,j))return mover==='wind'||mover==='duck'?null:{t:'grass'};
+  return null;
+}
+function cast(i,j,d,mover,max){
+  for(let s=1;s<=max;s++){const ni=i+DX[d]*s,nj=j+DY[d]*s,h=whatAt(ni,nj,mover);if(h)return{...h,i:ni,j:nj,s,pi:ni-DX[d],pj:nj-DY[d]};}
+  return{t:'none',i:i+DX[d]*max,j:j+DY[d]*max,s:max,pi:i+DX[d]*max,pj:j+DY[d]*max};
+}
+const cc=(i,j)=>({x:cx(i)+c/2,y:cy(j)+ch/2});
+const centreAt=(el,i,j)=>{const p=cc(i,j);return{x:p.x-pxW(el)/2,y:p.y-pxH(el)*.75};};
+async function runChain(kits){
+  const fan=toys.fan,fe=toyEl.fan;
+  // the cat pulls the cord
+  nudge(cat);await wait(200);
+  body(fe).animate([{transform:'rotate(0)'},{transform:'rotate(-5deg)'},{transform:'rotate(5deg)'},{transform:'rotate(0)'}],{duration:240,iterations:3});
+  let mover='wind',d=fan.d,from={i:fan.i,j:fan.j},el=null,extras=[],thread=null;
+  for(let link=0;link<6;link++){
+    const max=mover==='wind'?8:mover==='duck'?6:14;
+    let start=from;
+    if(mover==='duck'){ // leave from the puddle's edge
+      start={i:d===0?PUDDLE.i+PUDDLE.w-1:d===2?PUDDLE.i:clamp(from.i,PUDDLE.i,PUDDLE.i+PUDDLE.w-1),j:d===1?PUDDLE.j+PUDDLE.h-1:d===3?PUDDLE.j:clamp(from.j,PUDDLE.j,PUDDLE.j+PUDDLE.h-1)};}
+    const hit=cast(start.i,start.j,d,mover,max);
+    // travel
+    if(mover==='wind'){
+      const w=mk(null,40,24,windSVG(),{z:50,filter:null});
+      const a=cc(start.i,start.j),b=cc(hit.t==='out'||hit.t==='none'?hit.i:hit.i,hit.j);
+      place(w,a.x-20*U,a.y-12*U);w.querySelector('svg').style.transform=d===2?'scaleX(-1)':d===1?'rotate(90deg)':d===3?'rotate(-90deg)':'';
+      await moveTo(w,{x:b.x-20*U,y:b.y-12*U},Math.max(160,hit.s*70),{ease:'linear'});vanish(w);
+    }else{
+      const dur=mover==='duck'?Math.max(300,hit.s*80):Math.max(220,hit.s*90);
+      const tgt=['bed','res','out','none','grass'].includes(hit.t)?{i:hit.i,j:hit.j}:{i:hit.pi,j:hit.pj};
+      const ti=clamp(tgt.i,-1,COLS),tj=clamp(tgt.j,-1,ROWS);
+      await moveTo(el,centreAt(el,ti,tj),dur,{arc:mover==='duck'?28*U:0,spin:mover==='duck'?0:hit.s*120,ease:mover==='duck'?'ease-out':'ease-in'});
+      if(mover==='duck')slap(el);
+    }
+    // react
+    if(hit.t==='duck'){quack();mover='duck';el=duck;from={i:hit.i,j:hit.j};splash(cc(hit.i,hit.j));await wait(140);continue;}
+    if(hit.t==='yarn'){hop(toyEl.yarn,6);mover='yarn';el=toyEl.yarn;from={i:hit.i,j:hit.j};d=1;await wait(160);continue;}
+    if(hit.t==='tree'){
+      treeEl.animate([{rotate:'0deg'},{rotate:'-3deg'},{rotate:'3deg'},{rotate:'-2deg'},{rotate:'0deg'}],{duration:420});
+      const ai=clamp(hit.i,TREE.i,TREE.i+TREE.w-1),apple=mk(null,16,16,appleSVG(),{z:48,k:1.1});extras.push(apple);
+      place(apple,cc(ai,TREE.j+1).x-8*U,cc(ai,TREE.j+1).y-8*U);pop(apple);await wait(260);
+      mover='apple';el=apple;from={i:ai,j:TREE.j+TREE.h-1};d=1;continue;
+    }
+    if(hit.t==='bed'){
+      if(mover==='wind'){kits.forEach((k,n)=>body(k).animate([{transform:'skewX(0)'},{transform:`skewX(${d===2?14:-14}deg)`},{transform:'skewX(0)'}],{duration:500,delay:n*8}));}
+      else if(mover==='duck'){splash(cc(hit.i,hit.j));kits.forEach(k=>{setInner(k,kittenSVG(k._f,'cross',cur.m));hop(k,12);});await wait(500);kits.forEach(k=>setInner(k,kittenSVG(k._f,'ok',cur.m)));}
+      else{ // yarn or apple: everybody plays
+        if(mover==='yarn'){thread=mk(null,cur.w*36,cur.h*25,threadSVG(cur.w,cur.h),{z:47,filter:null});place(thread,cx(cur.i),cy(cur.j));pop(thread);}
+        kits.forEach((k,n)=>{setInner(k,kittenSVG(k._f,n%3?'ok':'cross',cur.m));body(k).animate([{transform:'translateY(0) rotate(0)'},{transform:`translateY(-12px) rotate(${n%2?12:-12}deg)`},{transform:'translateY(0) rotate(0)'}],{duration:340,delay:n*20,iterations:2});});
+        await wait(500);
+      }
+      break;
+    }
+    if(hit.t==='res'){const r=hit.r;r._cat.forEach(k=>hop(k,16,380));if(mover==='duck'){await wait(300);}break;}
+    if(hit.t==='bonk'||hit.t==='grass'){stars(cc(hit.pi,hit.pj));if(el)slap(el);break;}
+    break;   // out, or ran out of steam
+  }
+  await wait(700);
+  // tidy up: the duck waddles home, toys return to where she put them
+  const home=[];
+  if(duck._x!==undefined){const dx=duck._x,dy=duck._y;placeDuck();const hx=duck._x,hy=duck._y;place(duck,dx,dy);home.push(moveTo(duck,{x:hx,y:hy},600,{arc:10*U}));}
+  {const y=toyEl.yarn,p=atCell(y,toys.yarn.i,toys.yarn.j);if(Math.abs(y._x-p.x)+Math.abs(y._y-p.y)>1)home.push(moveTo(y,p,500));}
+  extras.forEach(e=>vanish(e));if(thread)home.push(vanish(thread));
+  await Promise.all(home);
+}
+function splash(p){for(let n=0;n<4;n++){const dr=mk(null,8,8,dropSVG(),{z:52,filter:null,k:1.2});place(dr,p.x,p.y);
+  moveTo(dr,{x:p.x+rnd(-18,18)*U,y:p.y-rnd(8,22)*U},300,{arc:8*U}).then(()=>vanish(dr));}}
+function stars(p){for(let n=0;n<3;n++){const s=mk(null,20,20,P('M10 0L12.5 7L20 7.5L14 12L16 19.5L10 15L4 19.5L6 12L0 7.5L7.5 7Z',C.yellow),{z:52,k:.6});
+  place(s,p.x+(n-1)*10*U,p.y-14*U-(n%2)*6*U);pop(s,n*60);setTimeout(()=>vanish(s),700);}}
+function quack(){body(duck).animate([{transform:'scale(1)'},{transform:'scale(1.3,.75)'},{transform:'scale(1)'}],{duration:220});}
+
+// ---------- album: what you have, and the shapes of what you don't ----------
+function openAlbum(){
+  if(document.getElementById('albumView'))return;
+  const slot=(d,have)=>`<svg viewBox="-9 -10 ${d.w+18} ${d.h+24}"><g filter="url(#${have?'stk':'sil'})">${d.svg()}</g></svg>`;
+  let s='<div class="sheet">';
+  for(const n of Object.keys(CATS))s+=`<div>${slot(CATS[n],album.has(n))}</div>`;
+  s+='</div>';
+  const v=document.createElement('div');v.id='albumView';v.innerHTML=s;world.appendChild(v);
+  v.firstElementChild.animate([{transform:'translateY(40px) scale(.96)',opacity:0},{transform:'none',opacity:1}],{duration:260,easing:'ease-out'});
+  v.addEventListener('click',()=>v.animate([{opacity:1},{opacity:0}],{duration:160}).finished.then(()=>v.remove()));
+}
+
+// ---------- idle life: blinks, glances, the odd wink ----------
+let faceNow='ask';
+const IDLE=['ask','blink','wink','lookL','lookR','lookD'];
+function setFace(m){faceNow=m;cat._face.innerHTML=LOAF_FACE[m];}
+async function flash(m,ms){if(busy||!IDLE.includes(faceNow))return;setFace(m);await wait(ms);if(faceNow===m)setFace('ask');}
+function watch(on){if(busy)return;if(on)setFace('lookD');else if(faceNow==='lookD')setFace('ask');}
+async function idleLife(){
+  for(;;){
+    await wait(rnd(2000,5000));
+    if(busy||drag||document.hidden||faceNow!=='ask'||!started)continue;
+    const r=Math.random();
+    if(r<.5){await flash('blink',130);if(Math.random()<.3){await wait(170);await flash('blink',120);}}
+    else if(r<.72)await flash(Math.random()<.5?'lookL':'lookR',rnd(900,1600));
+    else if(r<.86)await flash('wink',480);
+    else await flash('happy',900);
+  }
+}
+
+// ---------- go ----------
+init();
+if(!req||!fits(req)){req=gen();while(!req&&res.length){res[0]._bed.remove();res[0]._cat.forEach(e=>e.remove());res[0]._zz.remove();res[0]._btn.remove();res.shift();req=gen();}req=req||{t:'make',n:6,label:'6'};}
+if(cur&&!rectFree(cur.i,cur.j,cur.w,cur.h,{skipCur:true}))cur=null;
+if(cur)layoutBed(false);
+tickButtons();setInterval(tickButtons,2000);
+document.getElementById('start').addEventListener('click',async()=>{
+  const v=document.getElementById('intro');
+  await v.animate([{opacity:1},{opacity:0}],{duration:220}).finished;v.remove();
+  started=true;requestScene();
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save();else tickButtons();});
+addEventListener('pagehide',save);
+idleLife();
+addEventListener('resize',()=>{if(!busy)layout();});
+</script>
+</body>
+</html>
