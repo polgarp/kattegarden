@@ -31,7 +31,8 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-
 .handle.hint.v .body{animation:tugv 1.4s ease-in-out infinite}
 @keyframes tug{0%,60%,100%{transform:translate(0,0)}75%{transform:translate(5px,5px)}88%{transform:translate(1px,1px)}}
 @keyframes tugv{0%,60%,100%{transform:translate(0,0)}75%{transform:translate(0,7px)}88%{transform:translate(0,1px)}}
-.src.hint .body{animation:bob 1.8s ease-in-out infinite}
+.src.hint .body,.toy.hint .body{animation:bob 1.8s ease-in-out infinite}
+.stk.away .body{opacity:.4}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-3deg)}}
 .chip{position:absolute;left:0;top:0;pointer-events:none;width:1.9em;height:1.5em;line-height:1.6em;text-align:center;
   font-size:calc(var(--u) * 15px);font-weight:700;color:var(--ink);background:var(--paper);border-radius:.5em;
@@ -105,7 +106,6 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-
 const C={ink:'#3b2a4a',pink:'#ef8fa8',paper:'#fffdf7',sheet:'#f6f1e6',orange:'#f4a259',grey:'#b8c4d9',cream:'#f3e1b8',
   yellow:'#f6d26b',sky:'#7fb7e6',mint:'#c4e98f',wood:'#b9774f',plank:'#e9d7b5',felt:'#2c6e72',grass:'#3c8c5c',edge:'#c9bfac',card:'#d8a265'};
 const KIT=[C.orange,C.grey,C.cream,C.yellow];
-const MATS=['pude','kasse','kar'];   // cushions, cardboard box, bathtub
 
 // ---------- shape grammar helpers ----------
 const P=(d,f)=>`<path d="${d}" fill="${f}" filter="url(#cel)"/>`;
@@ -194,9 +194,13 @@ function kittenSVG(f,m='ok',mat='pude'){
   const face=m==='cross'?L('M13 4.5L15.6 6.5L13 8.5M23 4.5L20.4 6.5L23 8.5',1.4)+L('M16 11.5Q18 10 20 11.5',1.3)
     :m==='zz'?L('M13 6Q14.5 7.8 16 6M20 6Q21.5 7.8 23 6',1.3)+L('M17 10.5Q18 11.3 19 10.5',1.1)
     :m==='peek'?dot(14.5,6.5,1.5)+L('M20 6Q21.5 7.8 23 6',1.3)+L('M17 10.5Q18 11.3 19 10.5',1.1)
+    :m==='eat'?L('M13 6.8Q14.5 4.6 16 6.8M20 6.8Q21.5 4.6 23 6.8',1.3)
+
     :dot(14.5,6.5,1.5)+dot(21.5,6.5,1.5)+L('M16 10Q17 11.4 18 10Q19 11.4 20 10',1.2);
   const head=P('M10 6L10 -4L16 1Z',f)+P('M26 6L26 -4L20 1Z',f)+Ci(18,7,9,f)
    +flat('M11.5 3.5L11.5 -1L14.5 1.5Z',C.pink)+flat('M24.5 3.5L24.5 -1L21.5 1.5Z',C.pink)+face;
+  // face in the bowl: the bowl's front is redrawn over the chin
+  if(mat==='bowl')return `<g transform="translate(0 6)">${head}</g>`+P('M4.6 16.9H31.4Q30 27.5 18 27.5Q6 27.5 4.6 16.9Z',C.sky)+dot(9,15.6,1.4,C.orange)+dot(28,15.2,1.4,C.orange);
   if(mat==='kasse')return `<g transform="translate(0 4)">${head}</g>`+E(11.5,20.5,4.5,3,f)+E(24.5,20.5,4.5,3,f);
   if(mat==='kar')return `<g transform="translate(0 4)">${head}</g>`+Ci(9,20,5.5,C.paper)+Ci(18,22,6.5,C.paper)+Ci(27,20,5.5,C.paper);
   return P('M26 21Q34 21 32 13Q31 11 29.5 12Q31 16 29 18.5Q27 19.5 25 19Z',f)+E(18,19,10,6.5,f)+head;
@@ -224,24 +228,26 @@ const bubbleSVG=t=>{const w=bubbleW(t);
 const bellSVG=()=>Ci(24,6,3.5,C.yellow)+P('M24 6C14 6 11 14 11 24L8 34H40L37 24C37 14 34 6 24 6Z',C.yellow)+Ci(24,37,4.5,C.wood);
 const albumSVG=()=>R(4,2,36,34,6,C.sky)+R(4,2,8,34,4,C.wood)+Ci(27,21,5,C.paper)+Ci(21,13,2.4,C.paper)+Ci(27,11,2.4,C.paper)+Ci(33,13,2.4,C.paper);
 
-// bed materials: tray sticker, frame, one cell
-const SRC={
-  pude:()=>R(0,0,48,37,10,C.wood)+R(7,7.5,34,22,7,C.pink)+`<path d="M13 13.5h10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>`,
-  kasse:()=>P('M7 14L0 3Q0 1 2 1L20 4L22 14Z',C.plank)+P('M41 14L48 3Q48 1 46 1L28 4L26 14Z',C.plank)+R(2,11,44,26,8,C.card)+`<rect x="20" y="11" width="8" height="10" fill="${C.cream}" opacity=".85"/>`,
-  kar:()=>Ci(11,35,3.5,C.yellow)+Ci(37,35,3.5,C.yellow)+R(1,13,46,22,11,C.sky)+Ci(13,13,6,C.paper)+Ci(24,10,7.5,C.paper)+Ci(35,13,6,C.paper),
-};
-function frameSVG(m,fw,fh){
-  if(m==='kasse'){const a=Math.min(fw*.42,64);
-    return P(`M10 6L-3 -12Q-4 -15 -1 -15L${a} -10L${a+4} 6Z`,C.plank)+P(`M${fw-10} 6L${fw+3} -12Q${fw+4} -15 ${fw+1} -15L${fw-a} -10L${fw-a-4} 6Z`,C.plank)
-      +R(0,0,fw,fh,9,C.card)+`<rect x="${fw/2-7}" y="0" width="14" height="${Math.min(fh,24)}" fill="${C.cream}" opacity=".7"/>`;}
-  if(m==='kar')return Ci(16,fh+1,6,C.yellow)+Ci(fw-16,fh+1,6,C.yellow)+R(-12,7,15,7,3.5,C.grey)+R(0,0,fw,fh,Math.min(18,fh*.4),C.sky);
+
+// ---------- what the kittens need decides what she builds ----------
+const KINDS=['bed','bowl','mat'];
+const NEED={sleep:'bed',eat:'bowl',play:'mat'}, NEEDS=['sleep','eat','play'];
+function frameSVG(k,fw,fh){
+  if(k==='bowl')return R(0,0,fw,fh,10,C.cream)+`<rect x="3.5" y="3.5" width="${fw-7}" height="${fh-7}" rx="7" fill="none" stroke="${C.pink}" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+  if(k==='mat')return R(0,0,fw,fh,12,C.sky);
   return R(0,0,fw,fh,10,C.wood);
 }
-function cellSVG(m,alt){
-  if(m==='kasse')return `<rect width="34" height="22" rx="6" fill="${C.wood}"/><rect x="3" y="2.5" width="28" height="5" rx="2.5" fill="#3b2340" opacity=".22"/>`;
-  if(m==='kar')return Ci(9,13,7,C.paper)+Ci(19,10,8.5,C.paper)+Ci(27,14,6,C.paper);
+function cellSVG(k,alt){
+  if(k==='bowl')return E(17,10,13,3.6,'#5b93c4')+E(17,9.4,9.5,3.2,C.orange)+P('M3.6 10.4H30.4Q29 21 17 21Q5 21 3.6 10.4Z',C.sky);
+  if(k==='mat')return R(0,0,34,22,6,'#d9ecfa')+Ci(9,14,5.6,alt?C.yellow:C.pink)+Ci(19.5,8.5,5.6,C.mint)+Ci(27,15,5.2,alt?C.pink:C.orange);
   return R(0,0,34,22,7,alt?C.yellow:C.pink)+`<path d="M6 6h10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>`;
 }
+const SRC=k=>`<g transform="translate(1 2)">${frameSVG(k,46,33)}<g transform="translate(6 5.5)">${cellSVG(k,0)}</g></g>`;
+const NEED_ICON={
+  sleep:()=>num(20,27,15,'z')+num(31,22,21,'Z'),
+  eat:  ()=>P('M15 18Q25 7 38 16L47 10Q44.5 18 47 26L38 20Q25 29 15 18Z',C.orange)+dot(22,16.5,1.7),
+  play: ()=>Ci(33,18,10.5,C.pink)+L('M24 13.5Q33 20 42.5 13.5M24.5 22.5Q33 28 42 22.5',1.4,C.paper),
+};
 
 const CATS={loaf:{svg:()=>loafSVG('happy'),w:100,h:80},noodle:{svg:noodleSVG,w:160,h:56},cube:{svg:cubeSVG,w:84,h:80},
   boxcat:{svg:boxcatSVG,w:96,h:84},tubcat:{svg:tubcatSVG,w:112,h:86},gassy:{svg:gassySVG,w:80,h:90},night:{svg:nightSVG,w:104,h:84}};
@@ -266,7 +272,7 @@ const fanWind=()=>L('M39 11q4 -2 8 0M40 18q5 -2 10 0M39 25q4 -2 8 0',1.6,C.paper
 const yarnSVG=()=>Ci(18,18,15,C.pink)+L('M6 13Q18 5 30 15M4 20Q18 11 32 22M8 27Q18 20 28 29',1.3,C.paper)+L('M28 31Q36 37 42 33',1.6,C.pink);
 const appleSVG=()=>Ci(8,10,7,C.pink)+P('M8 4Q11 -1 15 1Q12 5 8 4Z',C.mint);
 const buttonSVG=f=>Ci(10,10,10,f)+dot(7,7,1.6,'#3b2340')+dot(13,7,1.6,'#3b2340')+dot(7,13,1.6,'#3b2340')+dot(13,13,1.6,'#3b2340');
-const thinkSVG=()=>flat('M18 2H50Q60 2 60 12V24Q60 34 50 34H18Q8 34 8 24V12Q8 2 18 2Z',C.paper)+Ci(8,40,4.5,C.paper)+Ci(3,47,2.5,C.paper)+num(20,27,15,'z')+num(31,22,21,'Z');
+const thinkSVG=need=>flat('M18 2H50Q60 2 60 12V24Q60 34 50 34H18Q8 34 8 24V12Q8 2 18 2Z',C.paper)+Ci(8,40,4.5,C.paper)+Ci(3,47,2.5,C.paper)+NEED_ICON[need]();
 const windSVG=()=>L('M2 8q8 -4 16 0t16 0M8 18q8 -4 16 0t12 0',1.8,C.paper);
 const threadSVG=(w,h)=>{const W=w*36,Hh=h*25;let d=`M-4 ${Hh*.3}`;for(let k=1;k<=5;k++)d+=`Q${W*(k-.5)/5} ${k%2?-6:Hh+4} ${W*k/5} ${Hh*(k%2?.7:.3)}`;return L(d,2.2,C.pink);};
 const dropSVG=()=>`<circle cx="4" cy="4" r="3.5" fill="${C.sky}" stroke="${C.paper}" stroke-width="1.2"/>`;
@@ -276,10 +282,11 @@ const COLS=12, ROWS=17, AR=25/36, SK=1.15;
 const TREE={i:0,j:1,w:3,h:3}, PUDDLE={i:6,j:4,w:3,h:2}, FLOWERS={i:9,j:0,w:3,h:1}, ROCK={i:7,j:8,w:1,h:1};
 const MEADOW=[{i:0,j:10,w:2,h:7},{i:10,j:12,w:2,h:5},{i:4,j:15,w:3,h:2}];
 const inRect=(r,i,j)=>i>=r.i&&i<r.i+r.w&&j>=r.j&&j<r.j+r.h;
+const touches=(a,b)=>a.i<=b.i+b.w&&b.i<=a.i+a.w&&a.j<=b.j+b.h&&b.j<=a.j+a.h;
 const isMeadow=(i,j)=>MEADOW.some(r=>inRect(r,i,j));
 const isTerrain=(i,j)=>inRect(TREE,i,j)||inRect(PUDDLE,i,j)||inRect(FLOWERS,i,j)||inRect(ROCK,i,j)||isMeadow(i,j);
 
-// ---------- requests: make n (×) or one side fixed (÷); + and − come later (joining beds, the mole) ----------
+// ---------- requests: a need, and how many; make n (×) or one side fixed (÷) ----------
 const LV=[
   {make:[6,8,9,10,12]},
   {make:[12,14,15,16,18,20,7],fixW:[[10,2],[12,3],[15,3],[16,4],[14,2]]},
@@ -292,20 +299,24 @@ const pick=a=>a[(Math.random()*a.length)|0];
 // ---------- state ----------
 const q=new URLSearchParams(location.search);
 const store={get:k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-if(q.has('reset'))try{localStorage.removeItem('kg2');localStorage.removeItem('kg-album')}catch(e){}
-const S=store.get('kg2')||{};
-const FAST=q.has('fast'), FIRST=FAST?6e3:30e3, EVERY=FAST?15e3:180e3;   // a resident's first button, then one every 3 minutes
+if(q.has('reset'))try{['kg2','kg3','kg-album'].forEach(k=>localStorage.removeItem(k))}catch(e){}
+const S=store.get('kg3')||{};
+const FAST=q.has('fast'), FIRST=FAST?4e3:20e3, EVERY=FAST?8e3:60e3;   // a group's first button, then one a minute
+const DUR=FAST?{sleep:40e3,play:30e3,eat:20e3}:{sleep:360e3,play:240e3,eat:150e3};   // naps are long, snacks are quick
+const UNLOCK={bed:0,bowl:2,fan:3,mat:4,yarn:5};   // one new thing at a time
 const HOUR=q.has('hour')?+q.get('hour'):new Date().getHours()+new Date().getMinutes()/60;
 const SUN={i:Math.round(clamp((HOUR-8)/10,0,1)*9),j:7,w:3,h:3};   // left in the morning, right in the afternoon
-let W,H,c,ch,U,gx,gy,trayTop,trayH,catW,catH,srcHomes=[];
-let succ=S.succ|0, mat=S.mat||'pude', req=S.req||null, cur=S.cur||null, res=S.res||[], buttons=S.buttons|0;
+let W,H,c,ch,U,gx,gy,trayTop,trayH,catW,catH,srcHomes={};
+let succ=S.succ|0, buttons=S.buttons??((store.get('kg2')||{}).buttons|0), req=S.req||null, sel=S.sel??null, nextId=S.nextId||1, seen=S.seen||[];
+let items=(S.items||[]).map(o=>({...o,owed:o.owed|0}));
 let toys=S.toys||{fan:{i:2,j:5,d:0},yarn:{i:10,j:5}};
-let frame=null, cush=new Map(), cushMat=null, busy=false, drag=null, started=false;
+let frame=null, cush=new Map(), cushK=null, busy=false, drag=null, started=false;
 if(q.has('lvl')){succ=(+q.get('lvl')|0)*2;req=null;}
+const has=k=>succ>=UNLOCK[k];
 const album=new Set(['loaf']);(store.get('kg-album')||[]).forEach(x=>album.add(x));
 const saveAlbum=()=>store.set('kg-album',[...album]);
-const save=()=>store.set('kg2',{succ,mat,req,cur:cur&&{i:cur.i,j:cur.j,w:cur.w,h:cur.h,m:cur.m},
-  res:res.map(r=>({i:r.i,j:r.j,w:r.w,h:r.h,m:r.m,cat:r.cat,t0:r.t0,paid:r.paid})),buttons,toys,seen:Date.now()});
+const save=()=>store.set('kg3',{succ,buttons,req,sel,nextId,seen,toys,
+  items:items.map(it=>({id:it.id,k:it.k,i:it.i,j:it.j,w:it.w,h:it.h,occ:it.occ,owed:it.owed})),seen_at:Date.now()});
 const catCount=()=>[...album].filter(x=>!x.startsWith('gift:')).length;
 const world=document.getElementById('world'), bg=document.getElementById('bg');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -313,11 +324,13 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 const rnd=(a,b)=>a+Math.random()*(b-a);
 
 // ---------- occupancy ----------
-function cellFree(i,j,{skipCur=false,skipToy=null}={}){
+const itemAt=(i,j)=>items.find(it=>inRect(it,i,j));
+const selItem=()=>items.find(it=>it.id===sel)||null;
+// empties:true counts empty items as free, since she can reshape or put them away
+function cellFree(i,j,{skip=null,skipToy=null,empties=false}={}){
   if(i<0||j<0||i>=COLS||j>=ROWS||isTerrain(i,j))return false;
-  for(const r of res)if(inRect(r,i,j))return false;
-  if(!skipCur&&cur&&inRect(cur,i,j))return false;
-  for(const k in toys)if(k!==skipToy&&toys[k].i===i&&toys[k].j===j)return false;
+  for(const it of items)if(it.id!==skip&&inRect(it,i,j)&&!(empties&&!it.occ))return false;
+  for(const k in toys)if(k!==skipToy&&has(k)&&toys[k].i===i&&toys[k].j===j)return false;
   return true;
 }
 function rectFree(i,j,w,h,o){for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(!cellFree(i+a,j+b,o))return false;return true;}
@@ -325,31 +338,30 @@ function findSpot(w,h,o){
   const spots=[];
   for(let j=0;j+h<=ROWS;j++)for(let i=0;i+w<=COLS;i++)if(rectFree(i,j,w,h,o))spots.push({i,j});
   if(!spots.length)return null;
-  spots.sort((a,b)=>Math.abs(a.j+h/2-ROWS*.45)+Math.abs(a.i+w/2-COLS/2)*.6-(Math.abs(b.j+h/2-ROWS*.45)+Math.abs(b.i+w/2-COLS/2)*.6));
+  // prefer the middle, and a cell of lawn between her things so frames never touch
+  const crowd=s=>items.some(it=>it.id!==(o&&o.skip)&&touches(it,{i:s.i,j:s.j,w,h}))?8:0;
+  const score=s=>Math.abs(s.j+h/2-ROWS*.45)+Math.abs(s.i+w/2-COLS/2)*.6+crowd(s);
+  spots.sort((a,b)=>score(a)-score(b));
   return spots[0];
 }
-function roomFor(r){
-  const o={skipCur:true},pairs=[];
-  if(r.t==='fixW')pairs.push([r.w,r.n/r.w]);
-  else for(let a=1;a<=COLS;a++)if(r.n%a===0&&r.n/a<=ROWS)pairs.push([a,r.n/a]);
-  pairs.sort((p,q)=>Math.abs(p[0]-p[1])-Math.abs(q[0]-q[1]));
-  for(const [a,b] of pairs){const sp=findSpot(a,b,o);if(sp)return sp;}
-  return null;
-}
-function fits(r){
-  const o={skipCur:true};
-  if(r.t==='fixW')return !!findSpot(r.w,r.n/r.w,o);
-  for(let a=1;a<=COLS;a++)if(r.n%a===0&&r.n/a<=ROWS&&findSpot(a,r.n/a,o))return true;
-  return false;
-}
+const pairs=r=>{const p=[];if(r.t==='fixW')p.push([r.w,r.n/r.w]);else for(let a=1;a<=COLS;a++)if(r.n%a===0&&r.n/a<=ROWS)p.push([a,r.n/a]);
+  return p.sort((x,y)=>Math.abs(x[0]-x[1])-Math.abs(y[0]-y[1]));};
+function roomFor(r,o={}){for(const [a,b] of pairs(r)){const sp=findSpot(a,b,o);if(sp)return sp;}return null;}
+const fits=r=>!!roomFor(r,{empties:true});
 function gen(prev){
-  const lv=LV[Math.min(LV.length-1,Math.floor(succ/2))],types=Object.keys(lv);
-  for(let tries=0;tries<60;tries++){
+  const lv=LV[Math.min(LV.length-1,Math.floor(succ/2))];
+  const needs=NEEDS.filter(n=>has(NEED[n])), fresh=needs.find(n=>!seen.includes(n));
+  for(let tries=0;tries<80;tries++){
+    let need=pick(needs);
+    if(fresh&&tries<40)need=fresh;   // a newly unlocked need gets introduced straight away
+    else if(prev&&needs.length>1&&tries<30&&Math.random()<.65)need=pick(needs.filter(n=>n!==prev.need));
+    const types=fresh&&tries<40?['make']:Object.keys(lv);
     let r=Math.random()*types.reduce((s,t)=>s+TW[t],0),t=types[0];
     for(const k of types){r-=TW[k];if(r<0){t=k;break;}}
-    const v=pick(lv[t]),qq=t==='make'?{t,n:v,label:''+v}:{t,n:v[0],w:v[1],label:''+v[0]};
+    const v=pick(lv[t]),qq=t==='make'?{need,t,n:v,label:''+v}:{need,t,n:v[0],w:v[1],label:''+v[0]};
     if(!fits(qq))continue;
     if(prev&&tries<20&&qq.n===prev.n)continue;
+    if(!seen.includes(need))seen.push(need);
     return qq;
   }
   return null;
@@ -367,6 +379,7 @@ function mk(role,wU,hU,inner,{filter='stk',z=20,k=1,cls='',face=null}={}){
 function sizeEl(el){const b=el.firstElementChild,k=+el.dataset.k;b.style.width=el.dataset.w*U*k+'px';b.style.height=el.dataset.h*U*k+'px';}
 const pxW=el=>el.dataset.w*U*el.dataset.k, pxH=el=>el.dataset.h*U*el.dataset.k;
 const setInner=(el,s)=>{el.querySelector('svg>g').innerHTML=s};
+function resizeEl(el,w,h,inner){el.dataset.w=w;el.dataset.h=h;el.querySelector('svg').setAttribute('viewBox',`0 0 ${w} ${h}`);setInner(el,inner);sizeEl(el);}
 function place(el,x,y){el._x=x;el._y=y;el.style.transform=`translate(${x}px,${y}px)`;}
 const body=el=>el.firstElementChild;
 const pop=(el,delay=0)=>body(el).animate([{transform:'scale(0)'},{transform:'scale(1.18)'},{transform:'scale(1)'}],{duration:260,delay,easing:'ease-out',fill:'backwards'});
@@ -399,29 +412,30 @@ const atCell=(el,i,j,lift=2)=>({x:cx(i)+c/2-pxW(el)/2,y:cy(j)+ch-pxH(el)+lift*U}
 const centreOf=el=>({x:el._x+pxW(el)/2,y:el._y+pxH(el)/2});
 
 // ---------- layout ----------
-let cat,bubble,srcs=[],albumEl,countChip,btnEl,btnChip,handle,wChip,hChip,ghost,treeEl,duck,cloudEl=null,waiting=[];
-const toyEl={};
+let cat,bubble,albumEl,countChip,btnEl,btnChip,handle,wChip,hChip,ghost,treeEl,duck,cloudEl=null,waiting=[];
+const srcEl={},toyEl={};
 function chip(z=14){const d=document.createElement('div');d.className='chip';d.style.zIndex=z;d.hidden=true;world.appendChild(d);return d;}
 function setBubble(t){const w=bubbleW(t);bubble.dataset.w=w;bubble.querySelector('svg').setAttribute('viewBox',`0 0 ${w} 52`);setInner(bubble,bubbleSVG(t));sizeEl(bubble);}
 function init(){
   cat=mk('cat',100,80,loafBody(),{k:1.15,z:25,face:LOAF_FACE.ask});
   bubble=mk('cat',80,52,'',{k:1.05,z:26});bubble.hidden=true;
-  srcs=MATS.map((m,i)=>{const el=mk('src',48,37,SRC[m](),{k:SK,z:22,cls:'src'+(!cur&&i===0?' hint':'')});el.dataset.m=m;return el;});
-  albumEl=mk('album',44,38,albumSVG(),{k:1.15,z:22});
+  KINDS.forEach(k=>{const el=mk('src',48,37,SRC(k),{k:SK,z:22,cls:'src'});el.dataset.kind=k;el.hidden=!has(k);srcEl[k]=el;});
+  albumEl=mk('album',44,38,albumSVG(),{k:1.15,z:22});albumEl.hidden=catCount()<2;
   countChip=document.createElement('div');countChip.className='chip count';countChip.textContent=catCount();albumEl.appendChild(countChip);
-  btnEl=mk('purse',20,20,buttonSVG(C.yellow),{k:1.35,z:22});
-  btnChip=document.createElement('div');btnChip.className='chip count';btnChip.textContent=buttons;btnEl.appendChild(btnChip);
+  btnEl=mk('purse',20,20,buttonSVG(C.yellow),{k:1.35,z:22});btnEl.hidden=!buttons;
+  btnChip=document.createElement('div');btnChip.className='chip count';btnChip.textContent=buttons;btnChip.hidden=!buttons;btnEl.appendChild(btnChip);
   treeEl=mk(null,108,75,treeAP(),{filter:'ap',z:9});
   [['flowers',FLOWERS,flowersAP,108,25],['rock',ROCK,rockAP,36,25],['puddle',PUDDLE,puddleAP,108,52]].forEach(([n,r,f,w,h])=>{const el=mk(null,w,h,f(),{filter:'ap',z:2});el._r=r;el._n=n;treeEl['_'+n]=el;});
   duck=mk(null,36,30,duckSVG(),{k:.9,z:18});
-  toyEl.fan=mk('toy',52,40,fanSVG(),{k:.85,z:17,face:fanWind()});toyEl.fan.dataset.key='fan';
-  toyEl.yarn=mk('toy',44,40,yarnSVG(),{k:.75,z:17});toyEl.yarn.dataset.key='yarn';
+  toyEl.fan=mk('toy',52,40,fanSVG(),{k:.85,z:17,face:fanWind(),cls:'toy'});toyEl.fan.dataset.key='fan';
+  toyEl.yarn=mk('toy',44,40,yarnSVG(),{k:.75,z:17,cls:'toy'});toyEl.yarn.dataset.key='yarn';
+  for(const k in toyEl)toyEl[k].hidden=!has(k);
   handle=document.createElement('div');handle.className='stk handle hint';handle.dataset.role='handle';handle.style.zIndex=13;handle.hidden=true;
   handle.innerHTML=`<div class="body"><svg viewBox="0 0 44 44"><g filter="url(#flapShadow)"><path d="M27 6L6 27Q1.5 13 4 4Q13 1.5 27 6Z" fill="url(#flapG)"/></g></svg></div>`;
   world.appendChild(handle);
   ghost=document.createElement('div');ghost.className='ghost';ghost.hidden=true;world.appendChild(ghost);
   wChip=chip();hChip=chip();
-  res.forEach(r=>buildRes(r,false));
+  items.forEach(it=>{renderItem(it);if(it.occ)buildOcc(it);});
   layout();
 }
 function layout(){
@@ -432,21 +446,25 @@ function layout(){
   world.style.setProperty('--u',U);
   gx=(W-c*COLS)/2;gy=trayTop-10-ch*ROWS;
   catW=100*1.15*U;catH=80*1.15*U;
-  const sw=48*U*SK,sh=37*U*SK,gap=18*U,tw=MATS.length*sw+(MATS.length-1)*gap;
-  srcHomes=MATS.map((m,i)=>({x:(W-tw)/2+i*(sw+gap),y:trayTop+(trayH-sh)/2+2}));
-  [cat,bubble,albumEl,btnEl,...srcs,treeEl,duck,toyEl.fan,toyEl.yarn,treeEl._flowers,treeEl._rock,treeEl._puddle].forEach(sizeEl);
+  [cat,bubble,albumEl,btnEl,...Object.values(srcEl),treeEl,duck,toyEl.fan,toyEl.yarn,treeEl._flowers,treeEl._rock,treeEl._puddle].forEach(sizeEl);
+  layoutTray(false);
   place(cat,gx,gy-catH+4*U);
   place(bubble,cat._x+catW*.86,cat._y-8*U);
-  srcs.forEach((el,i)=>place(el,srcHomes[i].x,srcHomes[i].y));
   place(albumEl,W-gx-pxW(albumEl)-4,Math.max(12,gy-catH-70*U));
   place(btnEl,albumEl._x-pxW(btnEl)-34*U,albumEl._y+6*U);
   place(treeEl,cx(TREE.i),cy(TREE.j)+2*U);
   for(const n of ['flowers','rock','puddle']){const el=treeEl['_'+n],r=el._r;place(el,cx(r.i),cy(r.j)+(n==='puddle'?-1*U:0));}
   placeDuck();placeToys();
-  res.forEach(placeRes);
+  items.forEach(placeItem);
   drawBg();
-  if(cur)layoutBed(false);
+  if(selItem())layoutSel(false);
   if(cloudEl)placeWaiting();
+}
+// the tray holds only what she has unlocked, centred
+function layoutTray(anim){
+  const ks=KINDS.filter(has),sw=48*U*SK,sh=37*U*SK,gap=24*U,tw=ks.length*sw+(ks.length-1)*gap;
+  ks.forEach((k,n)=>{const h={x:(W-tw)/2+n*(sw+gap),y:trayTop+(trayH-sh)/2+2};srcHomes[k]=h;
+    if(anim&&!srcEl[k].hidden&&srcEl[k]._x!==undefined)moveTo(srcEl[k],h,300);else place(srcEl[k],h.x,h.y);});
 }
 function placeDuck(){place(duck,cx(PUDDLE.i)+PUDDLE.w*c/2-pxW(duck)/2,cy(PUDDLE.j)+PUDDLE.h*ch/2-pxH(duck)*.7);}
 function placeToys(){
@@ -471,8 +489,8 @@ function drawBg(){
   let m='';
   for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(!isMeadow(i,j))m+=`<rect x="${cx(i)}" y="${cy(j)}" width="${c+.4}" height="${ch+.4}" fill="#fff" opacity="${(i+j)%2?.12:.045}"/>`;
   s+=m;
-  let t='';const tuft=(x,y,sc)=>t+=`<path d="${tuftPath(x.toFixed(1),y.toFixed(1),sc)}" fill="#1d4f36" opacity=".62"/>`+`<path d="M${(x+1).toFixed(1)} ${(y-1).toFixed(1)}l${1.4*sc} ${-13*sc}l${2.4*sc} ${12*sc}Z" fill="${C.mint}" opacity=".45"/>`;
-  for(const r of MEADOW)for(let j=r.j;j<r.j+r.h;j++)for(let i=r.i;i<r.i+r.w;i++){tuft(cx(i)+6*U,cy(j)+ch,U*1.05);tuft(cx(i)+20*U,cy(j)+ch*.65,U*.95);tuft(cx(i)+30*U,cy(j)+ch*1.05,U*.8);}
+  let t='';const tuft=(x,y,sc)=>t+=`<path d="${tuftPath(x.toFixed(1),y.toFixed(1),sc)}" fill="#1d4f36" opacity=".7"/>`+`<path d="M${(x+1).toFixed(1)} ${(y-1).toFixed(1)}l${1.4*sc} ${-13*sc}l${2.4*sc} ${12*sc}Z" fill="${C.mint}" opacity=".5"/>`;
+  for(const r of MEADOW)for(let j=r.j;j<r.j+r.h;j++)for(let i=r.i;i<r.i+r.w;i++){tuft(cx(i)+6*U,cy(j)+ch,U*1.4);tuft(cx(i)+20*U,cy(j)+ch*.7,U*1.2);tuft(cx(i)+31*U,cy(j)+ch*1.05,U*1.05);}
   for(let x=4;x<W;x+=16*U)tuft(x+((x*7)%9)*U,gt+20*U+((x*13)%7)*U,U*.85);
   for(let y=gy;y<gy+ROWS*ch;y+=13*U){tuft(gx-10*U,y+10*U,U*.8);tuft(gx+COLS*c+2*U,y+16*U,U*.8);}
   s+=t;
@@ -484,187 +502,248 @@ function drawBg(){
   s+=`<g filter="url(#flapShadow)"><rect x="8" y="${trayTop+4}" width="${W-16}" height="${trayH-8}" rx="14" fill="${C.sheet}"/></g>`;
   bg.setAttribute('viewBox',`0 0 ${W} ${H}`);bg.innerHTML=s;
 }
-const inSun=(i,j)=>inRect(SUN,i,j);
 
-// ---------- the bed she is building ----------
-function layoutBed(animNew){
-  const x0=cx(cur.i),y0=cy(cur.j),fw=cur.w*36+12,fh=cur.h*25+10;
-  cur.m=cur.m||mat;
-  if(!frame)frame=mk('bed',fw,fh,'',{z:10});
-  frame.dataset.w=fw;frame.dataset.h=fh;frame.querySelector('svg').setAttribute('viewBox',`0 0 ${fw} ${fh}`);
-  setInner(frame,frameSVG(cur.m,fw,fh));sizeEl(frame);place(frame,x0-6*U,y0-5*U);
-  if(cushMat!==cur.m){for(const el of cush.values())el.remove();cush.clear();cushMat=cur.m;}
+// ---------- items in the garden: one sticker each, plus whoever is using it ----------
+// they stay when the kittens leave; an empty one can be reshaped, moved, or put back in the tray
+const fitK=(d,it)=>clamp(Math.min((it.w*36+10)/d.w,(it.h*25+16)/d.h),.45,1.1);
+const kitCol=(it,a,b)=>KIT[(a*3+b*5+it.i+it.j)%4];
+const restFace=(it,a,b)=>it.k==='bed'?'zz':it.k==='bowl'?'eat':((a+b)%3?'ok':'cross');
+function baseInner(it){
+  const fw=it.w*36+12,fh=it.h*25+10;let s=frameSVG(it.k,fw,fh);
+  for(let b=0;b<it.h;b++)for(let a=0;a<it.w;a++)s+=`<g transform="translate(${7+a*36} ${6.5+b*25})">${cellSVG(it.k,(a+b)%2)}</g>`;
+  return{fw,fh,inner:`<g filter="url(#stk)">${s}</g>`};
+}
+function kitsInner(it,face){
+  let s='';
+  for(let b=0;b<it.h;b++)for(let a=0;a<it.w;a++){
+    const f=face==='play'?((a+b)%2?'ok':'cross'):face||restFace(it,a,b);
+    s+=`<g transform="translate(${6+a*36} ${b*25})" filter="url(#stk)">${kittenSVG(kitCol(it,a,b),f,face==='play'?'pude':it.k)}</g>`;}
+  return s;
+}
+const setKits=(it,face)=>it._kits&&setInner(it._kits,kitsInner(it,face));
+function renderItem(it){
+  const b=baseInner(it);
+  if(!it._el){it._el=mk('item',b.fw,b.fh,b.inner,{z:8,filter:null});it._el._it=it;}
+  else resizeEl(it._el,b.fw,b.fh,b.inner);
+  it._el.hidden=it.id===sel;
+  if(!it._btn){it._btn=mk('btn',20,20,buttonSVG(C.yellow),{z:41,k:1.25});it._btn._it=it;it._btn.hidden=true;
+    it._chip=document.createElement('div');it._chip.className='chip count';it._btn.appendChild(it._chip);}
+}
+function buildOcc(it){
+  const b=baseInner(it);
+  it._kits=mk('item',b.fw,b.fh,kitsInner(it),{z:9,filter:null});it._kits._it=it;
+  const d=CATS[it.occ.cat];it._cat=d?[mk('item',d.w,d.h,d.svg(),{z:12,k:fitK(d,it)})]:[];it._cat.forEach(e=>e._it=it);
+  it._zz=it.k==='bed'?mk(null,36,26,zzSVG(),{z:13,k:.6,filter:null}):null;
+  life(it);
+}
+function clearOcc(it){[it._kits,it._zz,...(it._cat||[])].forEach(e=>e&&e.remove());it._kits=it._zz=null;it._cat=[];}
+// sleepers breathe, eaters nod into their bowls, players bounce
+function life(it){
+  const k=body(it._kits);
+  if(it.k==='bed')k.animate([{transform:'scale(1,1)'},{transform:'scale(1.012,.985)'}],{duration:1700,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});
+  else if(it.k==='bowl')k.animate([{transform:'translateY(0)'},{transform:'translateY(1.6px)'}],{duration:380,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});
+  else k.animate([{transform:'translateY(0)'},{transform:'translateY(-5px)',offset:.1},{transform:'translateY(0)',offset:.2},{transform:'translateY(-3px)',offset:.28},{transform:'translateY(0)',offset:.36},{transform:'translateY(0)'}],{duration:1800,iterations:Infinity});
+  it._cat.forEach(el=>body(el).animate([{transform:'scale(1,1)'},{transform:'scale(1.03,.97)'}],{duration:1600+rnd(0,400),iterations:Infinity,direction:'alternate',easing:'ease-in-out',delay:rnd(0,600)}));
+  if(it._zz)body(it._zz).animate([{transform:'translate(0,0)',opacity:1},{transform:'translate(5px,-8px)',opacity:.35}],{duration:1700,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});
+}
+const catSpot=(el,it)=>({x:cx(it.i)+it.w*c/2-pxW(el)/2,y:cy(it.j)+it.h*ch-pxH(el)*.9});
+function placeItem(it){
+  [it._el,it._btn,it._kits,it._zz,...(it._cat||[])].forEach(e=>e&&sizeEl(e));
+  const x=cx(it.i)-6*U,y=cy(it.j)-5*U;
+  place(it._el,x,y);if(it._kits)place(it._kits,x,y);
+  const c0=it._cat&&it._cat[0];if(c0){const p=catSpot(c0,it);place(c0,p.x,p.y);}
+  if(it._zz)place(it._zz,cx(it.i)+it.w*c-14*U,(c0?c0._y:cy(it.j)-4*U)-14*U);
+  place(it._btn,cx(it.i)+it.w*c-6*U,cy(it.j)+it.h*ch-10*U);
+}
+function newItem(k,i,j,w=1,h=1){
+  const it={id:nextId++,k,i,j,w,h,occ:null,owed:0};items.push(it);
+  renderItem(it);placeItem(it);select(it,true);return it;
+}
+
+// ---------- the selected item: cell by cell, with the corner flap to reshape it ----------
+function select(it,anim=false){
+  if(sel===it.id){layoutSel(anim);return;}
+  deselect();sel=it.id;it._el.hidden=true;layoutSel(anim);slap(frame);
+}
+function deselect(){const it=selItem();clearSel();sel=null;if(it){renderItem(it);placeItem(it);}}
+function clearSel(){if(frame){frame.remove();frame=null;}for(const el of cush.values())el.remove();cush.clear();cushK=null;handle.hidden=wChip.hidden=hChip.hidden=ghost.hidden=true;}
+const lockedW=it=>!!(req&&req.t==='fixW'&&req.lockId===it.id);
+function layoutSel(animNew){
+  const it=selItem();if(!it)return;
+  const x0=cx(it.i),y0=cy(it.j),fw=it.w*36+12,fh=it.h*25+10;
+  if(!frame)frame=mk('sel',fw,fh,'',{z:10});
+  resizeEl(frame,fw,fh,frameSVG(it.k,fw,fh));place(frame,x0-6*U,y0-5*U);
+  if(cushK!==it.k){for(const el of cush.values())el.remove();cush.clear();cushK=it.k;}
   const want=new Set();
-  for(let j=0;j<cur.h;j++)for(let i=0;i<cur.w;i++){
+  for(let j=0;j<it.h;j++)for(let i=0;i<it.w;i++){
     const key=i+','+j;want.add(key);let el=cush.get(key);
-    if(!el){el=mk('bed',34,22,cellSVG(cur.m,(i+j)%2),{z:11,filter:cur.m==='pude'?'stk':null});cush.set(key,el);if(animNew)pop(el,Math.min((i+j)*22,400));}
+    if(!el){el=mk('sel',34,22,cellSVG(it.k,(i+j)%2),{z:11});cush.set(key,el);if(animNew)pop(el,Math.min((i+j)*22,400));}
     else sizeEl(el);
     place(el,x0+i*c+U,y0+j*ch+1.5*U);
   }
   for(const [k,el] of cush)if(!want.has(k)){cush.delete(k);vanish(el);}
-  const cw=1.9*15*U,chh=1.5*15*U,locked=req&&req.t==='fixW';
-  wChip.textContent=cur.w;hChip.textContent=cur.h;wChip.hidden=hChip.hidden=false;
-  wChip.classList.toggle('locked',!!locked);handle.classList.toggle('v',!!locked);
-  place(wChip,x0+cur.w*c/2-cw/2,y0-5*U-chh-6);
-  place(hChip,Math.max(2,x0-6*U-cw-6),y0+cur.h*ch/2-chh/2);
-  handle.hidden=false;place(handle,x0+cur.w*c+6*U-22,y0+cur.h*ch+5*U-22);
+  const cw=1.9*15*U,chh=1.5*15*U,locked=lockedW(it);
+  wChip.textContent=it.w;hChip.textContent=it.h;wChip.hidden=hChip.hidden=false;
+  wChip.classList.toggle('locked',locked);handle.classList.toggle('v',locked);
+  place(wChip,x0+it.w*c/2-cw/2,y0-5*U-chh-6);
+  place(hChip,Math.max(2,x0-6*U-cw-6),y0+it.h*ch/2-chh/2);
+  handle.hidden=false;place(handle,x0+it.w*c+6*U-22,y0+it.h*ch+5*U-22);
 }
-function clearBed(){if(frame){frame.remove();frame=null;}for(const el of cush.values())el.remove();cush.clear();cushMat=null;handle.hidden=wChip.hidden=hChip.hidden=true;}
-// the ghost shows where the bed will grow to; the bed snaps there on release
-function bestSize(nw,nh){
+// the ghost shows the size it will snap to on release
+function bestSize(it,nw,nh){
   let best=null;
   for(let h=nh;h>=1;h--)for(let w=nw;w>=1;w--){
-    if((req&&req.t==='fixW')&&w!==cur.w)continue;
+    if(lockedW(it)&&w!==it.w)continue;
     if(best&&w*h<=best.w*best.h)continue;
-    if(rectFree(cur.i,cur.j,w,h,{skipCur:true}))best={w,h};
+    if(rectFree(it.i,it.j,w,h,{skip:it.id}))best={w,h};
   }
-  return best||{w:cur.w,h:cur.h};
+  return best||{w:it.w,h:it.h};
 }
-function showGhost(w,h){
+function showGhost(it,w,h){
   ghost.hidden=false;
-  Object.assign(ghost.style,{transform:`translate(${cx(cur.i)-3*U}px,${cy(cur.j)-3*U}px)`,width:w*c+6*U+'px',height:h*ch+6*U+'px'});
+  Object.assign(ghost.style,{transform:`translate(${cx(it.i)-3*U}px,${cy(it.j)-3*U}px)`,width:w*c+6*U+'px',height:h*ch+6*U+'px'});
   const cw=1.9*15*U,chh=1.5*15*U;
   if(wChip.textContent!=w){wChip.textContent=w;wChip.animate([{scale:1.3},{scale:1}],{duration:160});}
   if(hChip.textContent!=h){hChip.textContent=h;hChip.animate([{scale:1.3},{scale:1}],{duration:160});}
-  place(wChip,cx(cur.i)+w*c/2-cw/2,cy(cur.j)-5*U-chh-6);
-  place(hChip,Math.max(2,cx(cur.i)-6*U-cw-6),cy(cur.j)+h*ch/2-chh/2);
-  place(handle,cx(cur.i)+w*c+6*U-22,cy(cur.j)+h*ch+5*U-22);
+  place(wChip,cx(it.i)+w*c/2-cw/2,cy(it.j)-5*U-chh-6);
+  place(hChip,Math.max(2,cx(it.i)-6*U-cw-6),cy(it.j)+h*ch/2-chh/2);
+  place(handle,cx(it.i)+w*c+6*U-22,cy(it.j)+h*ch+5*U-22);
+}
+function setAway(on){[frame,...cush.values()].forEach(el=>el&&el.classList.toggle('away',on));}
+async function putAway(it){
+  if(it.owed)await collectButtons(it,true);
+  const to=srcHomes[it.k],els=[...cush.values()];cush.clear();
+  items=items.filter(x=>x!==it);
+  if(req&&req.lockId===it.id)req.lockId=null;
+  it._el.remove();it._btn.remove();sel=null;
+  const fr=frame;frame=null;cushK=null;handle.hidden=wChip.hidden=hChip.hidden=ghost.hidden=true;
+  els.forEach((el,n)=>moveTo(el,to,240+n*12).then(()=>el.remove()));
+  await vanish(fr);pop(srcEl[it.k]);save();
 }
 
-// ---------- residents: beds that stayed, with whoever moved in ----------
-const fitK=(d,r)=>clamp(Math.min((r.w*36+10)/d.w,(r.h*25+16)/d.h),.45,1.1);
-function bedSticker(r,face='zz'){
-  const fw=r.w*36+12,fh=r.h*25+10;let base=frameSVG(r.m,fw,fh),kits='';
-  for(let b=0;b<r.h;b++)for(let a=0;a<r.w;a++){
-    base+=`<g transform="translate(${7+a*36} ${6.5+b*25})">${cellSVG(r.m,(a+b)%2)}</g>`;
-    if(face)kits+=`<g transform="translate(${6+a*36} ${b*25})" filter="url(#stk)">${kittenSVG(KIT[(a*3+b*5+r.i+r.j)%4],face,r.m)}</g>`;}
-  return {fw,fh,inner:`<g filter="url(#stk)">${base}</g>`+kits};
+// ---------- buttons: groups pay over time, and leave when they're done ----------
+const accrued=it=>{if(!it.occ)return 0;const t=Math.min(Date.now()-it.occ.t0,it.occ.dur);return t<FIRST?0:1+Math.floor((t-FIRST)/EVERY);};
+const owed=it=>(it.occ?accrued(it)-it.occ.paid:0)+(it.owed|0);
+function revealPurse(){if(btnEl.hidden){btnEl.hidden=false;pop(btnEl);}}
+function tick(){
+  for(const it of items){const p=owed(it);
+    if(p>0){const was=it._btn.hidden;it._btn.hidden=false;it._chip.textContent=p;it._chip.hidden=p<2;if(was){pop(it._btn);revealPurse();}}
+    else it._btn.hidden=true;}
+  if(started&&!busy&&!drag){const due=items.find(it=>it.occ&&!it._leaving&&Date.now()-it.occ.t0>=it.occ.dur);if(due)depart(due);}
 }
-function buildRes(r,anim){
-  const b=bedSticker(r);
-  r._bed=mk('res',b.fw,b.fh,b.inner,{z:8,filter:null});r._bed._r=r;
-  if(!CATS[r.cat])r._cat=[];
-  else{const d=CATS[r.cat];r._cat=[mk('res',d.w,d.h,d.svg(),{z:12,k:fitK(d,r)})];}
-  r._cat.forEach(el=>el._r=r);
-  r._zz=mk(null,36,26,zzSVG(),{z:13,k:.6,filter:null});
-  r._btn=mk('btn',20,20,buttonSVG(C.yellow),{z:41,k:1.25});r._btn._r=r;
-  r._btnChip=document.createElement('div');r._btnChip.className='chip count';r._btn.appendChild(r._btnChip);r._btn.hidden=true;
-  if(anim){pop(r._bed);r._cat.forEach((el,n)=>pop(el,120+n*60));}
-  breathe(r);
-}
-function breathe(r){
-  r._cat.forEach(el=>body(el).animate([{transform:'scale(1,1)'},{transform:'scale(1.03,.97)'}],{duration:1600+rnd(0,400),iterations:Infinity,direction:'alternate',easing:'ease-in-out',delay:rnd(0,600)}));
-  body(r._zz).animate([{transform:'translate(0,0)',opacity:1},{transform:'translate(5px,-8px)',opacity:.35}],{duration:1700,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});
-}
-function placeRes(r){
-  [r._bed,r._zz,r._btn,...r._cat].forEach(sizeEl);
-  place(r._bed,cx(r.i)-6*U,cy(r.j)-5*U);
-  if(r._cat[0]){const el=r._cat[0];place(el,cx(r.i)+r.w*c/2-pxW(el)/2,cy(r.j)+r.h*ch-pxH(el)*.9);}
-  const top=r._cat[0]?r._cat[0]._y:cy(r.j)-4*U;
-  place(r._zz,cx(r.i)+r.w*c-14*U,top-14*U);
-  place(r._btn,cx(r.i)+r.w*c-6*U,cy(r.j)+r.h*ch-10*U);
-}
-const accrued=r=>{const t=Date.now()-r.t0;return t<FIRST?0:1+Math.floor((t-FIRST)/EVERY);};
-function tickButtons(){
-  for(const r of res){const p=accrued(r)-r.paid;
-    if(p>0){const was=r._btn.hidden;r._btn.hidden=false;r._btnChip.textContent=p;r._btnChip.hidden=p<2;if(was)pop(r._btn);}
-    else r._btn.hidden=true;}
-}
-async function collectButtons(r,silent){
-  const p=accrued(r)-r.paid;if(p<=0)return;
-  r.paid+=p;r._btn.hidden=true;
+async function collectButtons(it,silent){
+  const p=owed(it);if(p<=0)return;
+  if(it.occ)it.occ.paid=accrued(it);it.owed=0;it._btn.hidden=true;
+  revealPurse();
   const to={x:btnEl._x,y:btnEl._y};
   for(let n=0;n<Math.min(p,5);n++){
     const b=mk(null,20,20,buttonSVG(pick([C.yellow,C.pink,C.sky,C.mint])),{z:70,k:1.2});
-    fly(b,{x:r._btn._x,y:r._btn._y},to,n*90,520,50).then(()=>b.remove());
+    fly(b,{x:it._btn._x,y:it._btn._y},to,n*90,520,50).then(()=>b.remove());
   }
   await wait(Math.min(p,5)*90+520);
-  buttons+=p;btnChip.textContent=buttons;btnChip.animate([{scale:1.6},{scale:1}],{duration:300});if(!silent)slap(btnEl);
+  buttons+=p;btnChip.textContent=buttons;btnChip.hidden=false;btnChip.animate([{scale:1.6},{scale:1}],{duration:300});if(!silent)slap(btnEl);
   save();
 }
-async function retire(r){
-  await collectButtons(r,true);   // nothing is ever lost: buttons come with them
-  res=res.filter(x=>x!==r);
-  r._zz.remove();r._btn.remove();
-  // they wake up, stretch, and wander off; you can watch them go
-  setInner(r._bed,bedSticker(r,'ok').inner);hop(r._bed,5);
+// they wake up, stretch, and wander off; the item stays behind, empty
+async function depart(it){
+  it._leaving=true;
+  await collectButtons(it,true);
+  it.occ=null;
+  if(it._zz){it._zz.remove();it._zz=null;}
+  setKits(it,'ok');hop(it._kits,5);
   await wait(450);
-  const n=Math.min(r.w*r.h,8),walkers=[];
-  for(let k=0;k<n;k++){const a=k%r.w,b=Math.floor(k/r.w)%r.h,el=mk(null,36,25,kittenSVG(KIT[(a*3+b*5+r.i+r.j)%4],'ok'),{z:30});
-    const p=cellXY(r.i+a,r.j+b);place(el,p.x,p.y);walkers.push(el);}
-  setInner(r._bed,bedSticker(r,null).inner);
+  const n=Math.min(it.w*it.h,8),walkers=[];
+  for(let k=0;k<n;k++){const a=k%it.w,b=Math.floor(k/it.w)%it.h,el=mk(null,36,25,kittenSVG(kitCol(it,a,b),'ok'),{z:30});
+    const p=cellXY(it.i+a,it.j+b);place(el,p.x,p.y);walkers.push(el);}
+  it._kits.remove();it._kits=null;
+  const cats=it._cat;it._cat=[];
   await Promise.all([...walkers.map((el,k)=>wait(k*70).then(()=>moveTo(el,{x:W+20,y:el._y-rnd(0,30)*U},800,{arc:6*U}))),
-    ...r._cat.map(el=>moveTo(el,{x:W+20,y:el._y-10*U},900,{arc:10*U}))]);
-  walkers.forEach(el=>el.remove());r._cat.forEach(el=>el.remove());
-  await vanish(r._bed);
+    ...cats.map(el=>moveTo(el,{x:W+20,y:el._y-10*U},900,{arc:10*U}))]);
+  walkers.forEach(el=>el.remove());cats.forEach(el=>el.remove());
+  it._leaving=false;save();
 }
+// while the app was closed: they left, their buttons wait on the item
+function leftWhileAway(it){it.owed=(it.owed|0)+accrued(it)-it.occ.paid;it.occ=null;clearOcc(it);}
 
 // ---------- input ----------
 const pt=e=>{const r=world.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
 const cellAt=p=>({i:Math.floor((p.x-gx)/c),j:Math.floor((p.y-gy)/ch)});
 world.addEventListener('pointerdown',e=>{
   if(document.getElementById('albumView')||!started)return;
-  const t=e.target.closest('[data-role]');if(!t)return;
-  const p=pt(e),role=t.dataset.role;
-  if(['cat','album','purse'].includes(role))drag={role,el:t};
-  else if(role==='btn')drag={role,el:t};
-  else if(role==='res')drag={role,el:t};
+  const t=e.target.closest('[data-role]'),p=pt(e);
+  if(!t){if(!busy&&sel!==null)deselect();return;}   // tap the grass: put the flap away
+  const role=t.dataset.role;
+  if(['cat','album','purse','btn'].includes(role))drag={role,el:t};
+  else if(role==='item'&&t._it.occ)drag={role:'occ',it:t._it,el:t};
   else if(busy)return;
+  else if(role==='item'||role==='sel'){
+    const it=role==='sel'?selItem():t._it;if(!it)return;
+    select(it);const c0=cellAt(p);drag={role:'move',it,oi:c0.i-it.i,oj:c0.j-it.j,sx:p.x,sy:p.y,moved:false};watch(true);
+  }
   else if(role==='src')drag={role,el:t,dx:p.x-t._x,dy:p.y-t._y,sx:p.x,sy:p.y,moved:false};
   else if(role==='toy')drag={role,el:t,key:t.dataset.key,dx:p.x-t._x,dy:p.y-t._y,sx:p.x,sy:p.y,moved:false};
-  else if(role==='bed'&&cur){const c0=cellAt(p);drag={role,oi:c0.i-cur.i,oj:c0.j-cur.j};body(frame).classList.add('lifted');watch(true);}
-  else if(role==='handle'&&cur){drag={role,t:0,w:cur.w,h:cur.h};handle.classList.remove('hint');watch(true);}
+  else if(role==='handle'&&selItem()){const it=selItem();drag={role,it,t:0,w:it.w,h:it.h};handle.classList.remove('hint');watch(true);}
   if(drag)try{world.setPointerCapture(e.pointerId)}catch(_){}
 });
 world.addEventListener('pointermove',e=>{
   if(!drag)return;const p=pt(e);
   if(drag.role==='src'||drag.role==='toy'){
-    if(!drag.moved&&Math.hypot(p.x-drag.sx,p.y-drag.sy)>7){drag.moved=true;lift(drag.el,true);if(drag.role==='src')srcs.forEach(s=>s.classList.remove('hint'));}
+    if(!drag.moved&&Math.hypot(p.x-drag.sx,p.y-drag.sy)>7){drag.moved=true;lift(drag.el,true);drag.el.classList.remove('hint');}
     if(drag.moved)place(drag.el,p.x-drag.dx,p.y-drag.dy);
-  }else if(drag.role==='bed'){
-    const c0=cellAt(p),ni=clamp(c0.i-drag.oi,0,COLS-cur.w),nj=clamp(c0.j-drag.oj,0,ROWS-cur.h);
-    if((ni!==cur.i||nj!==cur.j)&&rectFree(ni,nj,cur.w,cur.h,{skipCur:true})){cur.i=ni;cur.j=nj;layoutBed(false);}
+  }else if(drag.role==='move'){
+    const it=drag.it;
+    if(!drag.moved&&Math.hypot(p.x-drag.sx,p.y-drag.sy)>6){drag.moved=true;body(frame).classList.add('lifted');}
+    if(!drag.moved)return;
+    const away=p.y>trayTop;   // over the tray: let go to put it away
+    if(away!==!!drag.away){drag.away=away;setAway(away);srcEl[it.k].classList.toggle('hint',away);}
+    if(away)return;
+    const c0=cellAt(p),ni=clamp(c0.i-drag.oi,0,COLS-it.w),nj=clamp(c0.j-drag.oj,0,ROWS-it.h);
+    if((ni!==it.i||nj!==it.j)&&rectFree(ni,nj,it.w,it.h,{skip:it.id})){it.i=ni;it.j=nj;layoutSel(false);placeItem(it);}
   }else if(drag.role==='handle'){
-    let nw=clamp(Math.round((p.x-cx(cur.i))/c),1,COLS-cur.i);const nh=clamp(Math.round((p.y-cy(cur.j))/ch),1,ROWS-cur.j);
-    if(req.t==='fixW'&&nw!==cur.w){nw=cur.w;const now=performance.now();if(now-drag.t>600){drag.t=now;shake(wChip);}}
-    const b=bestSize(nw,nh);
+    const it=drag.it;
+    let nw=clamp(Math.round((p.x-cx(it.i))/c),1,COLS-it.i);const nh=clamp(Math.round((p.y-cy(it.j))/ch),1,ROWS-it.j);
+    if(lockedW(it)&&nw!==it.w){nw=it.w;const now=performance.now();if(now-drag.t>600){drag.t=now;shake(wChip);}}
+    const b=bestSize(it,nw,nh);
     if(b.w<nw||b.h<nh){const now=performance.now();if(now-drag.t>700){drag.t=now;shake(ghost);}}
-    if(b.w!==drag.w||b.h!==drag.h){drag.w=b.w;drag.h=b.h;}
-    showGhost(drag.w,drag.h);
+    drag.w=b.w;drag.h=b.h;
+    showGhost(it,drag.w,drag.h);
   }
 });
 function endDrag(){
   if(!drag)return;const d=drag;drag=null;
   if(d.role==='cat')check();
   else if(d.role==='album')openAlbum();
-  else if(d.role==='purse'){slap(btnEl);}
-  else if(d.role==='btn')collectButtons(d.el._r);
-  else if(d.role==='res'){const r=d.el._r;hop(d.el,8);if(accrued(r)-r.paid>0)collectButtons(r);}
+  else if(d.role==='purse')slap(btnEl);
+  else if(d.role==='btn')collectButtons(d.el._it);
+  else if(d.role==='occ'){hop(d.el,8);collectButtons(d.it);}
   else if(d.role==='src'){
-    const el=d.el,m=el.dataset.m,home=srcHomes[MATS.indexOf(m)];
-    if(!d.moved){   // a tap places a bed (or re-covers the one she has)
-      if(cur){cur.m=m;mat=m;layoutBed(true);slap(frame);}
-      else{const s=roomFor(req)||findSpot(1,1);if(s){mat=m;cur={i:s.i,j:s.j,w:1,h:1,m};layoutBed(true);slap(frame);}}
-      pop(el);srcs.forEach(s=>s.classList.remove('hint'));save();return;
+    const el=d.el,k=el.dataset.kind,home=srcHomes[k];
+    Object.values(srcEl).forEach(s=>s.classList.remove('hint'));
+    if(!d.moved){   // a tap puts a fresh 1×1 out, somewhere with room to grow
+      const s=(req&&NEED[req.need]===k&&roomFor(req))||findSpot(1,1);
+      if(!s){shake(el);return;}
+      newItem(k,s.i,s.j);pop(el);save();return;
     }
     lift(el,false);
-    const ce=cellAt({x:el._x+pxW(el)/2,y:el._y+pxH(el)/2});
-    if(ce.i>=0&&ce.i<COLS&&ce.j>=0&&ce.j<ROWS&&(cur||cellFree(ce.i,ce.j))){
-      mat=m;
-      if(!cur)cur={i:ce.i,j:ce.j,w:1,h:1,m};else cur.m=m;
-      layoutBed(true);slap(frame);place(el,home.x,home.y);pop(el);save();
-    }else moveTo(el,home,260);
+    const ce=cellAt(centreOf(el));
+    if(cellFree(ce.i,ce.j)){newItem(k,ce.i,ce.j);place(el,home.x,home.y);pop(el);save();}
+    else moveTo(el,home,260);
   }else if(d.role==='toy'){
     const el=d.el,k=d.key;
-    if(!d.moved){if(k==='fan'){toys.fan.d=(toys.fan.d+1)%4;placeToys();slap(el);save();}else hop(el,8);return;}
+    if(!d.moved){el.classList.remove('hint');if(!busy)runChain(k);return;}
     lift(el,false);
     const ce=cellAt(centreOf(el));
     if(cellFree(ce.i,ce.j,{skipToy:k})){toys[k].i=ce.i;toys[k].j=ce.j;}
     const p=atCell(el,toys[k].i,toys[k].j);moveTo(el,p,140).then(()=>slap(el));save();
-  }else if(d.role==='bed'){body(frame).classList.remove('lifted');slap(frame);watch(false);save();}
-  else if(d.role==='handle'){
-    watch(false);ghost.hidden=true;
-    if(d.w!==cur.w||d.h!==cur.h){cur.w=d.w;cur.h=d.h;layoutBed(true);slap(frame);}else layoutBed(false);
+  }else if(d.role==='move'){
+    watch(false);
+    if(frame)body(frame).classList.remove('lifted');
+    srcEl[d.it.k].classList.remove('hint');
+    if(d.away)putAway(d.it);
+    else{if(d.moved&&frame)slap(frame);save();}
+  }else if(d.role==='handle'){
+    const it=d.it;watch(false);ghost.hidden=true;
+    if(d.w!==it.w||d.h!==it.h){it.w=d.w;it.h=d.h;layoutSel(true);slap(frame);placeItem(it);}else layoutSel(false);
     save();
   }
 }
@@ -672,7 +751,7 @@ world.addEventListener('pointerup',endDrag);
 world.addEventListener('pointercancel',endDrag);
 document.addEventListener('gesturestart',e=>e.preventDefault());
 
-// ---------- a request: the cat, the problem, the number ----------
+// ---------- a request: the cat, how many, and what they want ----------
 function placeWaiting(){
   const bw=bubbleW(req.label)*U*1.05;
   const x=Math.min(bubble._x+bw+16*U,W-gx-80*U),y=cat._y-12*U;
@@ -682,40 +761,61 @@ function placeWaiting(){
 async function requestScene(){
   busy=true;
   setBubble(req.label);bubble.hidden=false;
-  if(!cloudEl){cloudEl=mk(null,62,50,thinkSVG(),{z:24,k:.8});cloudEl.style.opacity=0;}
+  if(cloudEl)cloudEl.remove();cloudEl=mk(null,62,50,thinkSVG(req.need),{z:24,k:.8});
   waiting.forEach(el=>el.remove());waiting=[0,1,2].map(n=>mk(null,36,25,kittenSVG(KIT[n],n===1?'peek':'ok'),{z:23,k:.95}));
-  placeWaiting();cloudEl.style.opacity=1;
+  placeWaiting();
   pop(cloudEl);waiting.forEach((el,n)=>{pop(el,200+n*110);
     body(el).animate([{transform:'scale(1,1)'},{transform:'scale(1.04,.95)'}],{duration:1300,iterations:Infinity,direction:'alternate',easing:'ease-in-out',delay:600+n*200});});
   await wait(650);pop(bubble);
-  if(req.t==='fixW'&&!(cur&&cur.w===req.w)){
-    clearBed();const s=findSpot(req.w,req.n/req.w,{skipCur:true})||findSpot(req.w,1,{skipCur:true});
-    cur={i:s.i,j:s.j,w:req.w,h:1,m:mat};layoutBed(true);handle.classList.add('hint');
-  }
+  const k=NEED[req.need],empty=items.filter(x=>!x.occ&&x.k===k);
+  if(req.t==='fixW'){   // ÷: they come in rows of w, so one side is already decided
+    let it=empty.filter(x=>x.w===req.w).pop();
+    if(!it){const s=findSpot(req.w,req.n/req.w)||findSpot(req.w,1);if(s)it=newItem(k,s.i,s.j,req.w,1);}
+    if(it){req.lockId=it.id;select(it,true);handle.classList.add('hint');}
+    else req.t='make';
+  }else if(empty.length)select(empty[empty.length-1]);
+  else srcEl[k].classList.add('hint');
   busy=false;save();flash('lookR',900);
 }
 
-// ---------- tap the cat: kittens move in, the cat checks ----------
+// ---------- tap the cat: kittens go to the item, the cat counts ----------
+// the selected item, or the only empty one of the right kind
+function target(){const s=selItem();if(s&&!s.occ)return s;const e=items.filter(x=>!x.occ&&x.k===NEED[req.need]);return e.length===1?e[0]:null;}
 async function check(){
-  if(busy)return;
-  if(!cur){nudge(cat);pop(bubble);srcs.forEach(s=>pop(s));return;}
+  if(busy||!req)return;
+  const it=target();
+  if(!it){nudge(cat);if(cloudEl)pop(cloudEl);const s=srcEl[NEED[req.need]];pop(s);s.classList.add('hint');return;}
+  if(sel!==it.id)select(it);
   busy=true;setFace('lookD');
-  const N=req.n,A=cur.w*cur.h,cells=[];
-  for(let j=0;j<cur.h;j++)for(let i=0;i<cur.w;i++)cells.push([cur.i+i,cur.j+j]);
+  const N=req.n,A=it.w*it.h,cells=[];
+  for(let j=0;j<it.h;j++)for(let i=0;i<it.w;i++)cells.push([it.i+i,it.j+j]);
   const from=cloudEl?{x:cloudEl._x,y:cloudEl._y+30*U}:{x:cat._x+catW*.4,y:cat._y};
   waiting.forEach(el=>el.style.opacity=0);
-  const spillN=Math.max(0,Math.min(N-A,8)),total=Math.min(N,A)+spillN;
+  const right=it.k===NEED[req.need];
+  const inN=right?Math.min(N,A):Math.min(N,A,6),spillN=right?Math.max(0,Math.min(N-A,8)):0,total=inN+spillN;
   const stagger=clamp(1100/total,12,90),kits=[];
   for(let k=0;k<total;k++){
-    const f=pick(KIT),inBed=k<A&&k<N,el=mk(null,36,25,kittenSVG(f,'ok',inBed?cur.m:'pude'),{z:30+k});el._f=f;
-    if(inBed){el._cell=cells[k];fly(el,from,cellXY(...cells[k]),k*stagger);}
+    const inBed=k<inN,cell=cells[k],f=inBed?kitCol(it,cell[0]-it.i,cell[1]-it.j):pick(KIT),el=mk(null,36,25,kittenSVG(f,'ok'),{z:30+k});el._f=f;
+    if(inBed){el._cell=cell;fly(el,from,cellXY(...cell),k*stagger);}
     else{el._spill=true;fly(el,from,{x:cat._x+catW*(.25+(k%3)*.18),y:cat._y-(8+Math.floor((k-A)/3)*9)*U},k*stagger,420,30);}
     kits.push(el);
   }
   await wait(total*stagger+480);
-  if(A===N)await success(kits);
+  if(!right)await wrongKind(kits,it);
+  else if(A===N)await success(kits,it);
   else await oops(kits,A<N?null:cells.slice(N));
   busy=false;save();
+}
+// right number, wrong thing: sleepy kittens sniffing at food bowls
+async function wrongKind(kits,it){
+  setFace('glare');
+  kits.forEach(k=>{setInner(k,kittenSVG(k._f,'cross'));hop(k,6);});
+  const t=mk(null,62,50,thinkSVG(req.need),{z:62,k:.75});
+  place(t,clamp(cx(it.i)+it.w*c/2-pxW(t)/2,4,W-pxW(t)-4),Math.max(4,cy(it.j)-pxH(t)-2*U));pop(t);
+  await wait(1100);
+  await Promise.all([...kits.map((el,i)=>vanish(el,i*6)),vanish(t)]);
+  waiting.forEach(el=>el.style.opacity=1);
+  setFace('ask');if(cloudEl)pop(cloudEl);
 }
 // wrong count: a short gag (under 2 s), then she can fix it and tap again
 async function oops(kits,empty){
@@ -728,57 +828,62 @@ async function oops(kits,empty){
   waiting.forEach(el=>el.style.opacity=1);
   setFace('ask');pop(bubble);
 }
-// a taste is tied to what SHE chose (shape, material), so the cause can be found again
-function tasteOf(b){
-  const r=Math.max(b.w,b.h)/Math.min(b.w,b.h);
-  if(r>=3&&Math.max(b.w,b.h)>=4)return 'noodle';
-  if(b.w===b.h&&b.w>=2)return 'cube';
-  if(b.m==='kasse')return 'boxcat';
-  if(b.m==='kar')return 'tubcat';
+// a visitor's taste is tied to what SHE chose (kind, shape, place), so the cause can be found again
+function tasteOf(it){
+  const Lg=Math.max(it.w,it.h),Sm=Math.min(it.w,it.h);
+  if(it.k==='bed'){if(it.w>=4&&it.w>=it.h*3)return 'noodle';   // lying sideways: the noodle is a sideways cat
+   if(it.w===it.h&&it.w>=2)return 'cube';}
+  if(it.k==='bowl'&&it.h===1&&it.w>=4)return 'gassy';
+  if(it.k==='mat'){if(touches(it,PUDDLE))return 'tubcat';if(it.w===it.h&&it.w>=2)return 'boxcat';}
   return null;
 }
-async function success(kits){
+async function success(kits,it){
   succ++;setFace('happy');handle.hidden=wChip.hidden=hChip.hidden=true;
-  kits.forEach((el,i)=>{hop(el,9);if(inSun(...el._cell))setTimeout(()=>setInner(el,kittenSVG(el._f,'zz',cur.m)),300);});
+  kits.forEach(el=>{hop(el,9);const a=el._cell[0]-it.i,b=el._cell[1]-it.j;setTimeout(()=>setInner(el,kittenSVG(el._f,restFace(it,a,b),it.k)),300);});
   if(cloudEl)vanish(cloudEl);cloudEl=null;waiting.forEach(el=>el.remove());waiting=[];
-  await wait(600);
-  await runChain(kits);
-  await wait(500);
-  // whoever likes this bed moves in; the kittens go home
-  const name=tasteOf(cur)||(Math.random()<.3?'gassy':'none');
-  await Promise.all(kits.map((el,i)=>vanish(el,i*8)));
-  const r={i:cur.i,j:cur.j,w:cur.w,h:cur.h,m:cur.m,cat:name,t0:Date.now(),paid:0};
-  clearBed();cur=null;
-  res.push(r);buildRes(r,true);placeRes(r);
-  await wait(500);
-  if(CATS[name]&&!album.has(name))await collect(name,r._cat[0]);
-  if(res.length>3)await retire(res[0]);
+  await wait(900);
+  it.occ={n:req.n,need:req.need,cat:tasteOf(it),t0:Date.now(),dur:DUR[req.need],paid:0};
+  clearSel();sel=null;renderItem(it);buildOcc(it);placeItem(it);
+  kits.forEach(el=>el.remove());
+  // whoever likes this shape strolls in and joins the pile
+  const v=it._cat[0];
+  if(v){const p={x:v._x,y:v._y};place(v,W+10,p.y-20*U);await moveTo(v,p,900,{arc:16*U});slap(v);
+    await wait(300);if(!album.has(it.occ.cat))await collect(it.occ.cat,v);}
+  save();
+  await unlocks();
   setFace('ask');
   let nq=gen(req);
-  while(!nq&&res.length){await retire(res[0]);nq=gen(req);}
-  req=nq||{t:'make',n:6,label:'6'};
+  while(!nq&&items.some(x=>x.occ&&!x._leaving)){await depart(items.find(x=>x.occ&&!x._leaving));nq=gen(req);}
+  req=nq||{need:'sleep',t:'make',n:6,label:'6'};
   save();
   await requestScene();
 }
+// one new thing at a time: a new item in the tray, or a toy in the garden
+async function unlocks(){
+  for(const k of ['bowl','mat'])if(succ===UNLOCK[k]){srcEl[k].hidden=false;layoutTray(true);pop(srcEl[k]);srcEl[k].classList.add('hint');await wait(500);}
+  for(const k of ['fan','yarn'])if(succ===UNLOCK[k]){
+    const t=toys[k];if(!cellFree(t.i,t.j,{skipToy:k})){const s=findSpot(1,1);if(s){t.i=s.i;t.j=s.j;}}
+    toyEl[k].hidden=false;placeToys();pop(toyEl[k]);toyEl[k].classList.add('hint');await wait(500);}
+}
 async function collect(name,el){
   album.add(name);saveAlbum();
+  if(albumEl.hidden){albumEl.hidden=false;pop(albumEl);await wait(300);}
   const d=CATS[name],g=mk(null,d.w,d.h,d.svg(),{z:60,k:.8});
   await fly(g,{x:el._x,y:el._y},{x:albumEl._x,y:albumEl._y},0,700,80);
   await vanish(g);
   countChip.textContent=catCount();countChip.animate([{scale:1.6},{scale:1}],{duration:300});pop(albumEl);
 }
 
-// ---------- the chain reaction ----------
+// ---------- the chain reaction: she taps a toy, it plays through whatever is in the garden ----------
 // wind goes where the fan points, the duck flies with it, yarn and apples roll downhill (towards the tray)
 const DX=[1,0,-1,0],DY=[0,1,0,-1];
 function whatAt(i,j,mover){
   if(i<0||j<0||i>=COLS||j>=ROWS)return{t:'out'};
   if(inRect(PUDDLE,i,j))return mover==='duck'?null:{t:'duck'};
   if(inRect(TREE,i,j))return mover==='apple'?null:{t:'tree'};
-  if(toys.yarn.i===i&&toys.yarn.j===j&&mover!=='yarn')return{t:'yarn'};
-  if(toys.fan.i===i&&toys.fan.j===j&&mover!=='wind')return{t:'bonk'};
-  if(cur&&inRect(cur,i,j))return{t:'bed'};
-  for(const r of res)if(inRect(r,i,j))return{t:'res',r};
+  if(has('yarn')&&toys.yarn.i===i&&toys.yarn.j===j&&mover!=='yarn')return{t:'yarn'};
+  if(has('fan')&&toys.fan.i===i&&toys.fan.j===j&&mover!=='wind')return{t:'bonk'};
+  const it=itemAt(i,j);if(it)return{t:'item',it};
   if(inRect(ROCK,i,j)||inRect(FLOWERS,i,j))return{t:'bonk'};
   if(isMeadow(i,j))return mover==='wind'||mover==='duck'?null:{t:'grass'};
   return null;
@@ -789,29 +894,30 @@ function cast(i,j,d,mover,max){
 }
 const cc=(i,j)=>({x:cx(i)+c/2,y:cy(j)+ch/2});
 const centreAt=(el,i,j)=>{const p=cc(i,j);return{x:p.x-pxW(el)/2,y:p.y-pxH(el)*.75};};
-async function runChain(kits){
-  const fan=toys.fan,fe=toyEl.fan;
-  // the cat pulls the cord
-  nudge(cat);await wait(200);
-  body(fe).animate([{transform:'rotate(0)'},{transform:'rotate(-5deg)'},{transform:'rotate(5deg)'},{transform:'rotate(0)'}],{duration:240,iterations:3});
-  let mover='wind',d=fan.d,from={i:fan.i,j:fan.j},el=null,extras=[],thread=null;
+async function runChain(key){
+  busy=true;
+  let mover,d,from,el=null;const extras=[];
+  if(key==='fan'){
+    body(toyEl.fan).animate([{transform:'rotate(0)'},{transform:'rotate(-5deg)'},{transform:'rotate(5deg)'},{transform:'rotate(0)'}],{duration:240,iterations:3});
+    await wait(300);mover='wind';d=toys.fan.d;from={i:toys.fan.i,j:toys.fan.j};
+  }else{hop(toyEl.yarn,8);await wait(220);mover='yarn';el=toyEl.yarn;d=1;from={i:toys.yarn.i,j:toys.yarn.j};}
   for(let link=0;link<6;link++){
     const max=mover==='wind'?8:mover==='duck'?6:14;
     let start=from;
     if(mover==='duck'){ // leave from the puddle's edge
       start={i:d===0?PUDDLE.i+PUDDLE.w-1:d===2?PUDDLE.i:clamp(from.i,PUDDLE.i,PUDDLE.i+PUDDLE.w-1),j:d===1?PUDDLE.j+PUDDLE.h-1:d===3?PUDDLE.j:clamp(from.j,PUDDLE.j,PUDDLE.j+PUDDLE.h-1)};}
     const hit=cast(start.i,start.j,d,mover,max);
+    const landOn=['out','none','grass'].includes(hit.t)||(hit.t==='item'&&hit.it.occ);
     // travel
     if(mover==='wind'){
       const w=mk(null,40,24,windSVG(),{z:50,filter:null});
-      const a=cc(start.i,start.j),b=cc(hit.t==='out'||hit.t==='none'?hit.i:hit.i,hit.j);
+      const a=cc(start.i,start.j),b=cc(hit.i,hit.j);
       place(w,a.x-20*U,a.y-12*U);w.querySelector('svg').style.transform=d===2?'scaleX(-1)':d===1?'rotate(90deg)':d===3?'rotate(-90deg)':'';
       await moveTo(w,{x:b.x-20*U,y:b.y-12*U},Math.max(160,hit.s*70),{ease:'linear'});vanish(w);
     }else{
       const dur=mover==='duck'?Math.max(300,hit.s*80):Math.max(220,hit.s*90);
-      const tgt=['bed','res','out','none','grass'].includes(hit.t)?{i:hit.i,j:hit.j}:{i:hit.pi,j:hit.pj};
-      const ti=clamp(tgt.i,-1,COLS),tj=clamp(tgt.j,-1,ROWS);
-      await moveTo(el,centreAt(el,ti,tj),dur,{arc:mover==='duck'?28*U:0,spin:mover==='duck'?0:hit.s*120,ease:mover==='duck'?'ease-out':'ease-in'});
+      const tgt=landOn?{i:hit.i,j:hit.j}:{i:hit.pi,j:hit.pj};
+      await moveTo(el,centreAt(el,clamp(tgt.i,-1,COLS),clamp(tgt.j,-1,ROWS)),dur,{arc:mover==='duck'?28*U:0,spin:mover==='duck'?0:hit.s*120,ease:mover==='duck'?'ease-out':'ease-in'});
       if(mover==='duck')slap(el);
     }
     // react
@@ -823,27 +929,34 @@ async function runChain(kits){
       place(apple,cc(ai,TREE.j+1).x-8*U,cc(ai,TREE.j+1).y-8*U);pop(apple);await wait(260);
       mover='apple';el=apple;from={i:ai,j:TREE.j+TREE.h-1};d=1;continue;
     }
-    if(hit.t==='bed'){
-      if(mover==='wind'){kits.forEach((k,n)=>body(k).animate([{transform:'skewX(0)'},{transform:`skewX(${d===2?14:-14}deg)`},{transform:'skewX(0)'}],{duration:500,delay:n*8}));}
-      else if(mover==='duck'){splash(cc(hit.i,hit.j));kits.forEach(k=>{setInner(k,kittenSVG(k._f,'cross',cur.m));hop(k,12);});await wait(500);kits.forEach(k=>setInner(k,kittenSVG(k._f,'ok',cur.m)));}
-      else{ // yarn or apple: everybody plays
-        if(mover==='yarn'){thread=mk(null,cur.w*36,cur.h*25,threadSVG(cur.w,cur.h),{z:47,filter:null});place(thread,cx(cur.i),cy(cur.j));pop(thread);}
-        kits.forEach((k,n)=>{setInner(k,kittenSVG(k._f,n%3?'ok':'cross',cur.m));body(k).animate([{transform:'translateY(0) rotate(0)'},{transform:`translateY(-12px) rotate(${n%2?12:-12}deg)`},{transform:'translateY(0) rotate(0)'}],{duration:340,delay:n*20,iterations:2});});
-        await wait(500);
-      }
-      break;
-    }
-    if(hit.t==='res'){const r=hit.r;r._cat.forEach(k=>hop(k,16,380));if(mover==='duck'){await wait(300);}break;}
-    if(hit.t==='bonk'||hit.t==='grass'){stars(cc(hit.pi,hit.pj));if(el)slap(el);break;}
+    if(hit.t==='item'&&hit.it.occ){await react(hit.it,mover,d);break;}
+    if(hit.t==='item'||hit.t==='bonk'||hit.t==='grass'){stars(cc(hit.pi,hit.pj));if(el)slap(el);if(hit.t==='item')slap(hit.it.id===sel?frame:hit.it._el);break;}
     break;   // out, or ran out of steam
   }
-  await wait(700);
-  // tidy up: the duck waddles home, toys return to where she put them
+  await wait(600);
+  // tidy up: the duck waddles home, the yarn goes back to where she put it
   const home=[];
-  if(duck._x!==undefined){const dx=duck._x,dy=duck._y;placeDuck();const hx=duck._x,hy=duck._y;place(duck,dx,dy);home.push(moveTo(duck,{x:hx,y:hy},600,{arc:10*U}));}
+  {const dx=duck._x,dy=duck._y;placeDuck();const hx=duck._x,hy=duck._y;if(Math.abs(dx-hx)+Math.abs(dy-hy)>1){place(duck,dx,dy);home.push(moveTo(duck,{x:hx,y:hy},600,{arc:10*U}));}}
   {const y=toyEl.yarn,p=atCell(y,toys.yarn.i,toys.yarn.j);if(Math.abs(y._x-p.x)+Math.abs(y._y-p.y)>1)home.push(moveTo(y,p,500));}
-  extras.forEach(e=>vanish(e));if(thread)home.push(vanish(thread));
+  extras.forEach(e=>vanish(e));
   await Promise.all(home);
+  // an oscillating fan: after each puff it turns a quarter
+  if(key==='fan'){toys.fan.d=(toys.fan.d+1)%4;placeToys();slap(toyEl.fan);}
+  busy=false;save();
+}
+// whoever is using the item reacts to what came flying in
+async function react(it,mover,d){
+  const k=it._kits;if(!k)return;
+  it._cat.forEach(e=>hop(e,16,380));
+  if(mover==='wind'){setKits(it,'peek');body(k).animate([{transform:'skewX(0)'},{transform:`skewX(${d===2?10:-10}deg)`},{transform:'skewX(0)'}],{duration:600});await wait(700);}
+  else if(mover==='duck'){splash(cc(it.i+it.w/2-.5,it.j));setKits(it,'cross');hop(k,10);await wait(700);}
+  else{   // yarn or apple: everybody plays, even the sleepers
+    let thread=null;
+    if(mover==='yarn'){thread=mk(null,it.w*36,it.h*25,threadSVG(it.w,it.h),{z:47,filter:null});place(thread,cx(it.i),cy(it.j));pop(thread);}
+    setKits(it,'play');body(k).animate([{transform:'translateY(0)'},{transform:'translateY(-10px)'},{transform:'translateY(0)'}],{duration:340,iterations:3});
+    await wait(1050);if(thread)vanish(thread);
+  }
+  if(it._kits)setKits(it,null);
 }
 function splash(p){for(let n=0;n<4;n++){const dr=mk(null,8,8,dropSVG(),{z:52,filter:null,k:1.2});place(dr,p.x,p.y);
   moveTo(dr,{x:p.x+rnd(-18,18)*U,y:p.y-rnd(8,22)*U},300,{arc:8*U}).then(()=>vanish(dr));}}
@@ -882,20 +995,23 @@ async function idleLife(){
 }
 
 // ---------- go ----------
+if(sel!==null&&!items.some(x=>x.id===sel&&!x.occ))sel=null;
 init();
-if(!req||!fits(req)){req=gen();while(!req&&res.length){res[0]._bed.remove();res[0]._cat.forEach(e=>e.remove());res[0]._zz.remove();res[0]._btn.remove();res.shift();req=gen();}req=req||{t:'make',n:6,label:'6'};}
-if(cur&&!rectFree(cur.i,cur.j,cur.w,cur.h,{skipCur:true}))cur=null;
-if(cur)layoutBed(false);
-tickButtons();setInterval(tickButtons,2000);
+for(const it of items)if(it.occ&&Date.now()-it.occ.t0>=it.occ.dur)leftWhileAway(it);
+if(!req||!req.need||!fits(req)){
+  req=gen();
+  while(!req&&items.some(x=>x.occ)){leftWhileAway(items.find(x=>x.occ));req=gen();}
+  req=req||{need:'sleep',t:'make',n:6,label:'6'};
+}
+tick();setInterval(tick,2000);
 document.getElementById('start').addEventListener('click',async()=>{
   const v=document.getElementById('intro');
   await v.animate([{opacity:1},{opacity:0}],{duration:220}).finished;v.remove();
   started=true;requestScene();
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden)save();else tickButtons();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save();else tick();});
 addEventListener('pagehide',save);
 idleLife();
 addEventListener('resize',()=>{if(!busy)layout();});
 </script>
 </body>
-</html>
