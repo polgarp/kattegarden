@@ -37,7 +37,8 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-
   font-size:calc(var(--u) * 15px);font-weight:700;color:var(--ink);background:var(--paper);border-radius:.5em;
   box-shadow:0 0 0 1px var(--edge),0 2px 0 rgba(11,42,36,.4),0 5px 10px rgba(11,42,36,.18)}
 .chip.locked{background:var(--wood);color:var(--paper);box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--edge),0 3px 0 3px rgba(11,42,36,.35)}
-.count{left:auto;top:auto;right:-.6em;bottom:-.3em}
+.count{left:auto;top:auto;right:-.45em;bottom:-.35em;width:auto;min-width:1.35em;height:1.35em;line-height:1.45em;padding:0 .28em;box-sizing:border-box;
+  font-size:calc(var(--u) * 11px);border-radius:.7em;box-shadow:0 0 0 1px var(--edge),0 1.5px 0 rgba(11,42,36,.35)}
 #albumView{position:absolute;inset:0;z-index:100;background:rgba(11,42,36,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #albumView .sheet{background:var(--sheet);border-radius:18px;padding:16px 14px 18px;width:100%;max-width:420px;max-height:88%;overflow:auto;box-sizing:border-box;
   box-shadow:0 0 0 1px var(--edge),0 4px 0 rgba(11,42,36,.35),0 18px 40px rgba(11,42,36,.35);display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
@@ -265,6 +266,7 @@ const fanWind=()=>L('M39 11q4 -2 8 0M40 18q5 -2 10 0M39 25q4 -2 8 0',1.6,C.paper
 const yarnSVG=()=>Ci(18,18,15,C.pink)+L('M6 13Q18 5 30 15M4 20Q18 11 32 22M8 27Q18 20 28 29',1.3,C.paper)+L('M28 31Q36 37 42 33',1.6,C.pink);
 const appleSVG=()=>Ci(8,10,7,C.pink)+P('M8 4Q11 -1 15 1Q12 5 8 4Z',C.mint);
 const buttonSVG=f=>Ci(10,10,10,f)+dot(7,7,1.6,'#3b2340')+dot(13,7,1.6,'#3b2340')+dot(7,13,1.6,'#3b2340')+dot(13,13,1.6,'#3b2340');
+const thinkSVG=()=>flat('M18 2H50Q60 2 60 12V24Q60 34 50 34H18Q8 34 8 24V12Q8 2 18 2Z',C.paper)+Ci(8,40,4.5,C.paper)+Ci(3,47,2.5,C.paper)+num(20,27,15,'z')+num(31,22,21,'Z');
 const windSVG=()=>L('M2 8q8 -4 16 0t16 0M8 18q8 -4 16 0t12 0',1.8,C.paper);
 const threadSVG=(w,h)=>{const W=w*36,Hh=h*25;let d=`M-4 ${Hh*.3}`;for(let k=1;k<=5;k++)d+=`Q${W*(k-.5)/5} ${k%2?-6:Hh+4} ${W*k/5} ${Hh*(k%2?.7:.3)}`;return L(d,2.2,C.pink);};
 const dropSVG=()=>`<circle cx="4" cy="4" r="3.5" fill="${C.sky}" stroke="${C.paper}" stroke-width="1.2"/>`;
@@ -531,15 +533,17 @@ function showGhost(w,h){
 
 // ---------- residents: beds that stayed, with whoever moved in ----------
 const fitK=(d,r)=>clamp(Math.min((r.w*36+10)/d.w,(r.h*25+16)/d.h),.45,1.1);
-function bedSticker(r){
-  const fw=r.w*36+12,fh=r.h*25+10;let inner=frameSVG(r.m,fw,fh);
-  for(let b=0;b<r.h;b++)for(let a=0;a<r.w;a++)inner+=`<g transform="translate(${7+a*36} ${6.5+b*25})">${cellSVG(r.m,(a+b)%2)}</g>`;
-  return {fw,fh,inner};
+function bedSticker(r,face='zz'){
+  const fw=r.w*36+12,fh=r.h*25+10;let base=frameSVG(r.m,fw,fh),kits='';
+  for(let b=0;b<r.h;b++)for(let a=0;a<r.w;a++){
+    base+=`<g transform="translate(${7+a*36} ${6.5+b*25})">${cellSVG(r.m,(a+b)%2)}</g>`;
+    if(face)kits+=`<g transform="translate(${6+a*36} ${b*25})" filter="url(#stk)">${kittenSVG(KIT[(a*3+b*5+r.i+r.j)%4],face,r.m)}</g>`;}
+  return {fw,fh,inner:`<g filter="url(#stk)">${base}</g>`+kits};
 }
 function buildRes(r,anim){
   const b=bedSticker(r);
-  r._bed=mk(null,b.fw,b.fh,b.inner,{z:8});
-  if(r.cat==='pile'){r._cat=[0,1,2].map(n=>mk('res',36,25,kittenSVG(KIT[n],'zz',r.m),{z:12}));}
+  r._bed=mk('res',b.fw,b.fh,b.inner,{z:8,filter:null});r._bed._r=r;
+  if(!CATS[r.cat])r._cat=[];
   else{const d=CATS[r.cat];r._cat=[mk('res',d.w,d.h,d.svg(),{z:12,k:fitK(d,r)})];}
   r._cat.forEach(el=>el._r=r);
   r._zz=mk(null,36,26,zzSVG(),{z:13,k:.6,filter:null});
@@ -555,10 +559,8 @@ function breathe(r){
 function placeRes(r){
   [r._bed,r._zz,r._btn,...r._cat].forEach(sizeEl);
   place(r._bed,cx(r.i)-6*U,cy(r.j)-5*U);
-  if(r.cat==='pile'){const ci=r.i+(r.w>>1),cj=r.j+(r.h>>1);
-    r._cat.forEach((el,n)=>{const p=cellXY(clamp(ci-1+n,r.i,r.i+r.w-1),cj);place(el,p.x+(r.w<3?(n-1)*8*U:0),p.y-(n===1?6*U:0));});}
-  else{const el=r._cat[0];place(el,cx(r.i)+r.w*c/2-pxW(el)/2,cy(r.j)+r.h*ch-pxH(el)*.9);}
-  const top=Math.min(...r._cat.map(el=>el._y));
+  if(r._cat[0]){const el=r._cat[0];place(el,cx(r.i)+r.w*c/2-pxW(el)/2,cy(r.j)+r.h*ch-pxH(el)*.9);}
+  const top=r._cat[0]?r._cat[0]._y:cy(r.j)-4*U;
   place(r._zz,cx(r.i)+r.w*c-14*U,top-14*U);
   place(r._btn,cx(r.i)+r.w*c-6*U,cy(r.j)+r.h*ch-10*U);
 }
@@ -584,8 +586,16 @@ async function retire(r){
   await collectButtons(r,true);   // nothing is ever lost: buttons come with them
   res=res.filter(x=>x!==r);
   r._zz.remove();r._btn.remove();
-  await Promise.all(r._cat.map(el=>moveTo(el,{x:W+20,y:el._y-10*U},700,{arc:10*U})));
-  r._cat.forEach(el=>el.remove());
+  // they wake up, stretch, and wander off; you can watch them go
+  setInner(r._bed,bedSticker(r,'ok').inner);hop(r._bed,5);
+  await wait(450);
+  const n=Math.min(r.w*r.h,8),walkers=[];
+  for(let k=0;k<n;k++){const a=k%r.w,b=Math.floor(k/r.w)%r.h,el=mk(null,36,25,kittenSVG(KIT[(a*3+b*5+r.i+r.j)%4],'ok'),{z:30});
+    const p=cellXY(r.i+a,r.j+b);place(el,p.x,p.y);walkers.push(el);}
+  setInner(r._bed,bedSticker(r,null).inner);
+  await Promise.all([...walkers.map((el,k)=>wait(k*70).then(()=>moveTo(el,{x:W+20,y:el._y-rnd(0,30)*U},800,{arc:6*U}))),
+    ...r._cat.map(el=>moveTo(el,{x:W+20,y:el._y-10*U},900,{arc:10*U}))]);
+  walkers.forEach(el=>el.remove());r._cat.forEach(el=>el.remove());
   await vanish(r._bed);
 }
 
@@ -672,11 +682,11 @@ function placeWaiting(){
 async function requestScene(){
   busy=true;
   setBubble(req.label);bubble.hidden=false;
-  if(!cloudEl){cloudEl=mk(null,62,48,cloudSVG(),{z:24,k:.85});cloudEl.style.opacity=0;}
-  waiting.forEach(el=>el.remove());waiting=[0,1,2].map(n=>mk(null,36,25,kittenSVG(KIT[n],'cross'),{z:23,k:.95}));
+  if(!cloudEl){cloudEl=mk(null,62,50,thinkSVG(),{z:24,k:.8});cloudEl.style.opacity=0;}
+  waiting.forEach(el=>el.remove());waiting=[0,1,2].map(n=>mk(null,36,25,kittenSVG(KIT[n],n===1?'peek':'ok'),{z:23,k:.95}));
   placeWaiting();cloudEl.style.opacity=1;
   pop(cloudEl);waiting.forEach((el,n)=>{pop(el,200+n*110);
-    body(el).animate([{translate:'0 0'},{translate:'1.5px 0'},{translate:'-1.5px 0'},{translate:'0 0'}],{duration:240,iterations:Infinity,delay:600+n*70});});
+    body(el).animate([{transform:'scale(1,1)'},{transform:'scale(1.04,.95)'}],{duration:1300,iterations:Infinity,direction:'alternate',easing:'ease-in-out',delay:600+n*200});});
   await wait(650);pop(bubble);
   if(req.t==='fixW'&&!(cur&&cur.w===req.w)){
     clearBed();const s=findSpot(req.w,req.n/req.w,{skipCur:true})||findSpot(req.w,1,{skipCur:true});
@@ -735,13 +745,13 @@ async function success(kits){
   await runChain(kits);
   await wait(500);
   // whoever likes this bed moves in; the kittens go home
-  const name=tasteOf(cur)||(Math.random()<.3?'gassy':'pile');
+  const name=tasteOf(cur)||(Math.random()<.3?'gassy':'none');
   await Promise.all(kits.map((el,i)=>vanish(el,i*8)));
   const r={i:cur.i,j:cur.j,w:cur.w,h:cur.h,m:cur.m,cat:name,t0:Date.now(),paid:0};
   clearBed();cur=null;
   res.push(r);buildRes(r,true);placeRes(r);
   await wait(500);
-  if(name!=='pile'&&!album.has(name))await collect(name,r._cat[0]);
+  if(CATS[name]&&!album.has(name))await collect(name,r._cat[0]);
   if(res.length>3)await retire(res[0]);
   setFace('ask');
   let nq=gen(req);
